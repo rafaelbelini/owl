@@ -52,7 +52,7 @@ func PrintSummary(results []Result) {
 	for _, r := range results {
 		if r.Pass {
 			passed++
-		} else if r.Error == nil {
+		} else {
 			failed++
 		}
 	}

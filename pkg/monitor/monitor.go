@@ -1,11 +1,14 @@
 package monitor
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/oliveagle/jsonpath"
 )
 
 // TestConfig represents the parsed YAML configuration
@@ -27,6 +30,7 @@ type RequestConfig struct {
 // AssertionConfig represents a single assertion
 type AssertionConfig struct {
 	Type     string      `yaml:"type"`
+	Path     string      `yaml:"path"`
 	Expected interface{} `yaml:"expected"`
 }
 
@@ -155,6 +159,43 @@ func validateAssertion(assertion AssertionConfig, statusCode int, body string) A
 			result.Message = fmt.Sprintf("found text %q in body", expectedText)
 		} else {
 			result.Message = fmt.Sprintf("text %q not found in body", expectedText)
+		}
+
+	case "json_path":
+		path := assertion.Path
+		if path == "" {
+			result.Pass = false
+			result.Message = "json_path requires a 'path' field"
+			return result
+		}
+
+		// Parse JSON body
+		var data interface{}
+		if err := json.Unmarshal([]byte(body), &data); err != nil {
+			result.Pass = false
+			result.Message = fmt.Sprintf("invalid JSON response: %v", err)
+			return result
+		}
+
+		// Evaluate JSON path
+		actualValue, err := jsonpath.JsonPathLookup(data, path)
+		if err != nil {
+			result.Pass = false
+			result.Message = fmt.Sprintf("path %q not found in JSON", path)
+			return result
+		}
+
+		result.Actual = actualValue
+
+		// Compare with expected value
+		expectedStr := fmt.Sprintf("%v", assertion.Expected)
+		actualStr := fmt.Sprintf("%v", actualValue)
+		result.Pass = actualStr == expectedStr
+
+		if result.Pass {
+			result.Message = fmt.Sprintf("path %q == %q", path, expectedStr)
+		} else {
+			result.Message = fmt.Sprintf("path %q: expected %q, got %q", path, expectedStr, actualStr)
 		}
 
 	default:
