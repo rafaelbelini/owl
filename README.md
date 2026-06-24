@@ -10,6 +10,7 @@ A high-performance, concurrent API monitoring CLI application built with Go and 
 - **Response Assertions**:
   - `status_code`: Validate HTTP status codes
   - `contains_text`: Check for text presence in response body
+  - `json_path`: Validate JSON values using JSONPath expressions, including array indexing
 - **Colored Output**: Green for passes, red for failures
 - **Response Timing**: Track request duration for performance monitoring
 - **Error Handling**: Robust handling of network timeouts, malformed YAML, and invalid paths
@@ -89,6 +90,23 @@ timeout_seconds: 10
 ```yaml
 - type: "contains_text"
   expected: "success"
+```
+
+#### json_path
+```yaml
+- type: "json_path"
+  path: "$.user.name"
+  expected: "John"
+```
+
+**Array indexing:**
+```yaml
+- type: "json_path"
+  path: "$.users[0].name"
+  expected: "Alice"
+- type: "json_path"
+  path: "$.items[-1].id"
+  expected: 42
 ```
 
 ## Example Output
