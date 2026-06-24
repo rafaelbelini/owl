@@ -58,7 +58,11 @@ assertions:
 ## Complete Example
 
 ```yaml
-name: "Array Indexing Test"
+version: 1
+metadata:
+  name: "Array Indexing Test"
+  tags:
+    - array
 request:
   url: "https://api.example.com/orders"
   method: GET

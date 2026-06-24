@@ -10,10 +10,17 @@ import (
 
 // TestConfig represents the parsed YAML configuration
 type TestConfig struct {
-	Name           string                 `yaml:"name"`
+	Version        int                    `yaml:"version"`
+	Metadata       MetadataConfig         `yaml:"metadata"`
 	Request        RequestConfig          `yaml:"request"`
 	Assertions     []AssertionConfig      `yaml:"assertions"`
 	TimeoutSeconds int                    `yaml:"timeout_seconds"`
+}
+
+// MetadataConfig holds optional metadata for the test
+type MetadataConfig struct {
+	Name string `yaml:"name"`
+	Tags []string `yaml:"tags"`
 }
 
 // RequestConfig represents the HTTP request configuration
@@ -53,7 +60,7 @@ type AssertionResult struct {
 
 // Execute performs the HTTP request and validates assertions
 func Execute(config TestConfig) Result {
-	result := Result{Name: config.Name}
+	result := Result{Name: config.Metadata.Name}
 
 	// Default timeout
 	timeout := 10 * time.Second

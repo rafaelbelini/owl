@@ -68,7 +68,11 @@ assertions:
 ## Example Test File
 
 ```yaml
-name: "JSON Path Validation Test"
+version: 1
+metadata:
+  name: "JSON Path Validation Test"
+  tags:
+    - jsonpath
 request:
   url: "https://httpbin.org/json"
   method: GET

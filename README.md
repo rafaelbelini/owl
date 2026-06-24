@@ -37,7 +37,12 @@ mv owl /usr/local/bin/
 Create a YAML file (e.g., `check-api.yaml`):
 
 ```yaml
-name: "User Profile API Check"
+version: 1
+metadata:
+  name: "User Profile API Check"
+  tags:
+    - user
+    - api
 request:
   url: "https://api.example.com/v1/user/profile"
   method: GET
@@ -71,7 +76,9 @@ timeout_seconds: 10
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Name of the test |
+| `version` | int | Yes | Schema version (currently `1`) |
+| `metadata.name` | string | Yes | Name of the test |
+| `metadata.tags` | array | No | Tags for categorizing tests |
 | `request.url` | string | Yes | Full URL to call |
 | `request.method` | string | No | HTTP method (default: GET) |
 | `request.headers` | map | No | Custom headers |
