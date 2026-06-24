@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var verbose bool
+
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the API monitoring task",
@@ -45,7 +47,7 @@ Accepts a single argument: a .yaml/.yml file path or a directory containing such
 
 			result := monitor.Execute(config)
 			results = append(results, result)
-			monitor.PrintResult(result)
+			monitor.PrintResult(result, verbose)
 		}
 
 		monitor.PrintSummary(results)
@@ -59,4 +61,8 @@ Accepts a single argument: a .yaml/.yml file path or a directory containing such
 
 		return nil
 	},
+}
+
+func init() {
+	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show response body on failure")
 }

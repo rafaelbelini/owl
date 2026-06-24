@@ -12,6 +12,7 @@ A high-performance, concurrent API monitoring CLI application built with Go and 
   - `contains_text`: Check for text presence in response body
   - `json_path`: Validate JSON values using JSONPath expressions, including array indexing
 - **Colored Output**: Green for passes, red for failures
+- **Verbose Mode**: Show response body on failure for easier debugging (`-v`)
 - **Response Timing**: Track request duration for performance monitoring
 - **Error Handling**: Robust handling of network timeouts, malformed YAML, and invalid paths
 

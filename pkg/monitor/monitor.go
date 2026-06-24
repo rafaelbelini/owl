@@ -40,6 +40,7 @@ type Result struct {
 	Pass         bool
 	StatusCode   int
 	ResponseTime time.Duration
+	ResponseBody string
 	Assertions   []AssertionResult
 	Error        error
 }
@@ -109,6 +110,7 @@ func Execute(config TestConfig) Result {
 		return result
 	}
 	responseBody := string(bodyBytes)
+	result.ResponseBody = responseBody
 
 	// Run assertions
 	result.Assertions = make([]AssertionResult, 0, len(config.Assertions))

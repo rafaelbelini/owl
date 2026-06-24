@@ -14,6 +14,12 @@ owl run <path>
 |----------|-------------|
 | `<path>` | Path to a `.yaml`/`.yml` file or directory containing such files |
 
+## Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--verbose` | `-v` | `false` | Show response body on failure for debugging |
+
 ## Examples
 
 ### Single file

@@ -17,12 +17,17 @@ var (
 )
 
 // PrintResult prints a test result in a formatted way
-func PrintResult(result Result) {
+func PrintResult(result Result, verbose bool) {
 	bold.Printf("\n%s\n", result.Name)
 	fmt.Println(strings.Repeat("=", len(result.Name)))
 
 	if result.Error != nil {
 		red.Printf("  ✗ ERROR: %v\n", result.Error)
+		if verbose && result.ResponseBody != "" {
+			fmt.Println("  Response Body:")
+			fmt.Println("  " + strings.Repeat("-", 36))
+			fmt.Println("  " + result.ResponseBody)
+		}
 		return
 	}
 
@@ -41,6 +46,13 @@ func PrintResult(result Result) {
 		} else {
 			red.Printf("    ✗ %s: %s\n", a.Type, a.Message)
 		}
+	}
+
+	// Show response body on failure if verbose
+	if verbose && !result.Pass && result.ResponseBody != "" {
+		fmt.Println("  Response Body:")
+		fmt.Println("  " + strings.Repeat("-", 36))
+		fmt.Println("  " + result.ResponseBody)
 	}
 }
 
