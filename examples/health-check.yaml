@@ -1,0 +1,19 @@
+version: 1
+metadata:
+  name: "Health Check Endpoint"
+  tags:
+    - health
+request:
+  url: "https://api.example.com/health"
+  method: GET
+  headers:
+    Accept: "application/json"
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 200
+  - type: "contains_text"
+    expected: "healthy"
+
+timeout_seconds: 5

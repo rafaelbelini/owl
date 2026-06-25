@@ -1,0 +1,17 @@
+version: 1
+metadata:
+  name: "Expected Fail Test"
+  tags:
+    - fail
+request:
+  url: "https://httpbin.org/status/404"
+  method: GET
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 404
+  - type: "contains_text"
+    expected: "not_found"
+
+timeout_seconds: 10

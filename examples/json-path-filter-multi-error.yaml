@@ -1,0 +1,24 @@
+version: 1
+metadata:
+  name: "JSON Path Filter Multiple Matches Error Test"
+  tags:
+    - jsonpath
+    - filter
+    - error-case
+request:
+  url: "https://httpbin.org/json"
+  method: GET
+  headers:
+    Accept: "application/json"
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 200
+  # This filter matches 2 items (both slides have type "all")
+  # This test is expected to FAIL with "multiple matches" error
+  - type: "json_path"
+    path: "$.slideshow.slides.{\"type\":\"all\"}.title"
+    expected: "Should fail - multiple matches"
+
+timeout_seconds: 10

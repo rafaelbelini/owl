@@ -1,0 +1,23 @@
+version: 1
+metadata:
+  name: "User Profile API Check"
+  tags:
+    - api
+    - user
+request:
+  url: "https://api.example.com/v1/user/profile"
+  method: GET
+  headers:
+    Authorization: "Bearer your-test-token"
+    Accept: "application/json"
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 200
+  - type: "contains_text"
+    expected: "username"
+  - type: "contains_text"
+    expected: "email@example.com"
+
+timeout_seconds: 10

@@ -1,0 +1,21 @@
+version: 1
+metadata:
+  name: "JSON Path Failure Test"
+  tags:
+    - jsonpath
+    - fail
+request:
+  url: "https://httpbin.org/json"
+  method: GET
+  headers:
+    Accept: "application/json"
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 200
+  - type: "json_path"
+    path: "$.slideshow.title"
+    expected: "Wrong Title"
+
+timeout_seconds: 10

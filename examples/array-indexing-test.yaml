@@ -1,0 +1,24 @@
+version: 1
+metadata:
+  name: "Array Indexing Test"
+  tags:
+    - array
+    - jsonpath
+request:
+  url: "https://httpbin.org/json"
+  method: GET
+  headers:
+    Accept: "application/json"
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 200
+  - type: "json_path"
+    path: "$.slideshow.slides[0].title"
+    expected: "Wake up to WonderWidgets!"
+  - type: "json_path"
+    path: "$.slideshow.slides[1].title"
+    expected: "Overview"
+
+timeout_seconds: 10

@@ -1,0 +1,19 @@
+version: 1
+metadata:
+  name: "Example API Test"
+  tags:
+    - example
+request:
+  url: "https://httpbin.org/get"
+  method: GET
+  headers:
+    Accept: "application/json"
+  body: ""
+
+assertions:
+  - type: "status_code"
+    expected: 200
+  - type: "contains_text"
+    expected: "httpbin"
+
+timeout_seconds: 10
