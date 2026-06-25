@@ -29,6 +29,17 @@ Standard JSONPath syntax is supported:
 | `$.array[-1]` | Access last element of array |
 | `$.field[]` | All elements of array under field |
 
+### Filter Expressions
+
+You can filter arrays by field value using `{"field":"value"}` syntax:
+
+| Expression | Description |
+|------------|-------------|
+| `$.array.{"key":"val"}.field` | Find object in array where key=val, then get field |
+| `$.obj.arr.{"type":"x"}.name` | Filter array by type, get name |
+
+See [json_path_filter.md](./json_path_filter.md) for detailed documentation.
+
 ## Examples
 
 ### Basic Field Validation
