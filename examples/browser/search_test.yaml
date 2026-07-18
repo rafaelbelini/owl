@@ -1,0 +1,71 @@
+# Browser Test Example: Search Functionality
+# Tests the search feature of a web application
+# Run with: owl run examples/browser/search_test.yaml
+# Start a local server first: npx serve examples/browser -p 8000
+version: 1
+
+metadata:
+  name: "Search Test"
+  description: "Tests the search functionality"
+  tags:
+    - search
+    - functional
+
+browser:
+  url: "http://localhost:8000/search.html"
+  headless: true
+  timeout_seconds: 30
+  wait_until: "networkidle2"
+  viewport:
+    width: 1920
+    height: 1080
+
+steps:
+  - name: "Navigate to home page"
+    action: "goto"
+    url: "http://localhost:8000/search.html"
+    timeout_seconds: 15
+
+  - name: "Click search icon"
+    action: "click"
+    selector: ".search-icon"
+    timeout_seconds: 5
+
+  - name: "Wait for search input to appear"
+    action: "wait_selector"
+    selector: "#search-input"
+    timeout_seconds: 5
+
+  - name: "Type search query"
+    action: "fill_text"
+    selector: "#search-input"
+    value: "golang tutorial"
+    timeout_seconds: 5
+
+  - name: "Submit search"
+    action: "press"
+    selector: "#search-input"
+    key: "Enter"
+    timeout_seconds: 10
+
+  - name: "Wait for search results"
+    action: "wait_selector"
+    selector: ".search-results"
+    timeout_seconds: 10
+
+assertions:
+  - name: "URL contains search query"
+    type: "url_contains"
+    path: "#search?q=golang"
+
+  - name: "Search results are displayed"
+    type: "selector_visible"
+    selector: ".search-results"
+
+  - name: "Results contain search term"
+    type: "contains_text"
+    expected: "golang"
+
+  - name: "Page title contains search term"
+    type: "contains_text"
+    expected: "Search: golang tutorial"

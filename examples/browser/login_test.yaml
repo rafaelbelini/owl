@@ -1,0 +1,75 @@
+# Browser Test Example: Login Flow
+# Tests the login flow with local HTML files
+# Run with: owl run examples/browser/login_test.yaml
+# Start a local server first: npx serve examples/browser -p 8000
+# See README.md for test credentials
+version: 1
+
+metadata:
+  name: "Login Flow Test"
+  description: "Tests the login flow"
+  tags:
+    - login
+    - smoke
+
+browser:
+  url: "http://localhost:8000/login.html"
+  headless: true
+  timeout_seconds: 30
+  wait_until: "networkidle2"
+  viewport:
+    width: 1280
+    height: 720
+
+steps:
+  - name: "Fill email field"
+    action: "fill"
+    selector: "input[name='email']"
+    value: "test@example.com"
+    timeout_seconds: 5
+
+  - name: "Fill password field"
+    action: "fill"
+    selector: "input[name='password']"
+    value: "KFwBNLfFXn71rCb5QJuU"
+    timeout_seconds: 5
+
+  - name: "Submit form"
+    action: "click"
+    selector: "#submit-btn"
+    timeout_seconds: 10
+
+  - name: "Wait for redirect to dashboard"
+    action: "wait_url"
+    pattern: "dashboard"
+    timeout_seconds: 15
+
+  - name: "Wait for dashboard to load"
+    action: "wait_selector"
+    selector: ".welcome-message"
+    timeout_seconds: 10
+
+assertions:
+  - name: "User is on dashboard page"
+    type: "url_contains"
+    path: "dashboard"
+
+  - name: "Page title is correct"
+    type: "title"
+    expected: "Dashboard | Example App"
+
+  - name: "Welcome message is visible"
+    type: "selector_visible"
+    selector: ".welcome-message"
+
+  - name: "User avatar is loaded"
+    type: "element_exists"
+    selector: "img.user-avatar"
+
+  - name: "Auth token is saved in localStorage"
+    type: "local_storage"
+    key: "auth_token"
+
+  - name: "User email is saved"
+    type: "local_storage"
+    key: "user_email"

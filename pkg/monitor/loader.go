@@ -47,7 +47,7 @@ func FindTestFiles(path string) ([]string, error) {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && isTestFile(p) {
+			if !info.IsDir() && isHTTPTestFile(p) {
 				files = append(files, p)
 			}
 			return nil
@@ -57,10 +57,10 @@ func FindTestFiles(path string) ([]string, error) {
 		}
 	} else {
 		// Single file
-		if isTestFile(path) {
+		if isHTTPTestFile(path) {
 			files = append(files, path)
 		} else {
-			return nil, fmt.Errorf("file must be a .yaml or .yml file: %s", path)
+			return nil, fmt.Errorf("file must be a HTTP test YAML file (must contain 'request:'): %s", path)
 		}
 	}
 
@@ -71,4 +71,14 @@ func FindTestFiles(path string) ([]string, error) {
 func isTestFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yaml" || ext == ".yml"
+}
+
+// isHTTPTestFile checks if a file is an HTTP test by looking for "request:" field
+func isHTTPTestFile(filePath string) bool {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return false
+	}
+	content := strings.ToLower(string(data))
+	return strings.Contains(content, "request:")
 }

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example App - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: white;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        .navbar-search {
+            display: flex;
+            align-items: center;
+        }
+        .search-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        .search-icon:hover {
+            background: #f0f0f0;
+        }
+        .search-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: #666;
+        }
+        .search-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 100px;
+            z-index: 1000;
+        }
+        .search-container.active {
+            display: flex;
+        }
+        .search-box {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .search-input-container {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .search-input-container svg {
+            width: 24px;
+            height: 24px;
+            fill: #666;
+            margin-right: 15px;
+        }
+        #search-input {
+            flex: 1;
+            border: none;
+            font-size: 18px;
+            outline: none;
+            background: transparent;
+        }
+        .search-results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .search-result-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .result-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .result-description {
+            font-size: 14px;
+            color: #666;
+        }
+        .result-highlight {
+            background: #fff3cd;
+            padding: 0 2px;
+        }
+        .no-results {
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .hero h1 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        .hero p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">Example App</div>
+        <div class="navbar-search">
+            <div class="search-icon" id="search-trigger">
+                <svg viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+            </div>
+        </div>
+    </nav>
+
+    <div class="search-container" id="search-container">
+        <div class="search-box">
+            <div class="search-input-container">
+                <svg viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search..." autocomplete="off">
+            </div>
+            <div class="search-results" id="search-results"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Welcome to Example App</h1>
+            <p>Click the search icon to find what you're looking for</p>
+        </div>
+    </div>
+
+    <script>
+        const searchTrigger = document.getElementById('search-trigger');
+        const searchContainer = document.getElementById('search-container');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+
+        // Sample data for search results
+        const sampleData = [
+            {
+                title: 'Go Tutorial',
+                description: 'Learn Go programming from scratch with our comprehensive tutorial'
+            },
+            {
+                title: 'Golang Fundamentals',
+                description: 'Master the basics of Golang development'
+            },
+            {
+                title: 'Web Development with Go',
+                description: 'Build modern web applications using Go'
+            },
+            {
+                title: 'Go Concurrency Patterns',
+                description: 'Understand goroutines and channels in Go'
+            },
+            {
+                title: 'REST API Development',
+                description: 'Create robust REST APIs with Go and Gin framework'
+            }
+        ];
+
+        // Open search modal when clicking the search icon
+        searchTrigger.addEventListener('click', function() {
+            searchContainer.classList.add('active');
+            searchInput.focus();
+        });
+
+        // Close search modal when clicking outside
+        searchContainer.addEventListener('click', function(e) {
+            if (e.target === searchContainer) {
+                searchContainer.classList.remove('active');
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                searchContainer.classList.remove('active');
+            }
+        });
+
+        // Perform search
+        function performSearch(query) {
+            if (!query.trim()) {
+                searchResults.innerHTML = '';
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const results = sampleData.filter(item =>
+                item.title.toLowerCase().includes(lowerQuery) ||
+                item.description.toLowerCase().includes(lowerQuery)
+            );
+
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="no-results">No results found for "' + query + '"</div>';
+                return;
+            }
+
+            let html = '';
+            results.forEach(function(item) {
+                // Highlight matching text
+                const regex = new RegExp('(' + query + ')', 'gi');
+                const highlightedTitle = item.title.replace(regex, '<span class="result-highlight">$1</span>');
+
+                html += '<div class="search-result-item">';
+                html += '<div class="result-title">' + highlightedTitle + '</div>';
+                html += '<div class="result-description">' + item.description + '</div>';
+                html += '</div>';
+            });
+
+            searchResults.innerHTML = html;
+        }
+
+        // Handle search input
+        searchInput.addEventListener('input', function(e) {
+            performSearch(e.target.value);
+        });
+
+        // Handle form submission (Enter key)
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = searchInput.value.trim();
+                if (query) {
+                    // Close modal first
+                    searchContainer.classList.remove('active');
+
+                    // Update both document.title AND the actual <title> tag in DOM
+                    const newTitle = 'Search: ' + query;
+                    document.title = newTitle;
+                    document.querySelector('title').textContent = newTitle;
+
+                    // Update URL using hash (works with static servers)
+                    window.location.hash = 'search?q=' + encodeURIComponent(query);
+
+                    // Show results
+                    showResultsOnPage(query);
+                }
+            }
+        });
+
+        // Handle page load with hash params
+        window.addEventListener('hashchange', function(e) {
+            const hash = window.location.hash;
+            if (hash.startsWith('#search?q=')) {
+                const query = decodeURIComponent(hash.substring('#search?q='.length));
+                searchInput.value = query;
+                const newTitle = 'Search: ' + query;
+                document.title = newTitle;
+                document.querySelector('title').textContent = newTitle;
+                showResultsOnPage(query);
+            }
+        });
+
+        // Also handle initial load with hash (for direct access)
+        window.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#search?q=')) {
+                const query = decodeURIComponent(hash.substring('#search?q='.length));
+                searchInput.value = query;
+                const newTitle = 'Search: ' + query;
+                document.title = newTitle;
+                document.querySelector('title').textContent = newTitle;
+                showResultsOnPage(query);
+            }
+        });
+
+        function showResultsOnPage(query) {
+            const container = document.querySelector('.container');
+            const lowerQuery = query.toLowerCase();
+            const results = sampleData.filter(item =>
+                item.title.toLowerCase().includes(lowerQuery) ||
+                item.description.toLowerCase().includes(lowerQuery)
+            );
+
+            let html = '<div class="search-results" style="margin-top: 40px;">';
+            html += '<h2 style="margin-bottom: 20px;">Search Results for "' + query + '"</h2>';
+
+            if (results.length === 0) {
+                html += '<p>No results found.</p>';
+            } else {
+                results.forEach(function(item) {
+                    const regex = new RegExp('(' + query + ')', 'gi');
+                    const highlightedTitle = item.title.replace(regex, '<span class="result-highlight">$1</span>');
+                    html += '<div class="search-result-item">';
+                    html += '<div class="result-title">' + highlightedTitle + '</div>';
+                    html += '<div class="result-description">' + item.description + '</div>';
+                    html += '</div>';
+                });
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Check for search query in URL on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query) {
+                searchInput.value = query;
+                document.title = 'Search: ' + query;
+                showResultsOnPage(query);
+            }
+        });
+    </script>
+</body>
+</html>

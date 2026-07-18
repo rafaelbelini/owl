@@ -91,7 +91,7 @@ timeout_seconds: 10
 #### status_code
 ```yaml
 - type: "status_code"
-  expected: 200
+  expected: o00
 ```
 
 #### contains_text
@@ -134,6 +134,149 @@ SUMMARY
 Total:  2
 Passed: 2
 Failed: 0
+```
+
+## Browser Tests
+
+Owl CLI também suporta testes de browser usando [go-rod](https://github.com/go-rod/rod) para automação de Chrome/Edge. Permite testar fluxos de utilizador completos, incluindo interação com elementos, submissão de formulários, e verificação de estado.
+
+### Pré-requisitos
+
+- Chrome ou Chromium instalado
+- Servidor web local para servir ficheiros HTML (ex: `npx serve examples/browser -p 8000`)
+
+### Quick Start
+
+```bash
+# 1. Iniciar servidor local
+npx serve examples/browser -p 8000
+
+# 2. Executar testes
+go run . run examples/browser/
+
+# 3. Com verbose
+go run . run examples/browser/login_test.yaml --verbose
+```
+
+### Exemplo: Login Flow
+
+```yaml
+version: 1
+
+metadata:
+  name: "Login Flow Test"
+  description: "Tests the login flow"
+  tags:
+    - login
+    - smoke
+
+browser:
+  url: "http://localhost:8000/login.html"
+  headless: true
+  timeout_seconds: 30
+  wait_until: "networkidle2"
+  viewport:
+    width: 1280
+    height: 720
+
+steps:
+  - name: "Fill email field"
+    action: "fill"
+    selector: "input[name='email']"
+    value: "test@example.com"
+
+  - name: "Fill password field"
+    action: "fill"
+    selector: "input[name='password']"
+    value: "KFwBNLfFXn71rCb5QJuU"
+
+  - name: "Submit form"
+    action: "click"
+    selector: "#submit-btn"
+
+  - name: "Wait for redirect"
+    action: "wait_url"
+    pattern: "dashboard"
+
+assertions:
+  - name: "URL contains dashboard"
+    type: "url_contains"
+    path: "dashboard"
+
+  - name: "Title is correct"
+    type: "title"
+    expected: "Dashboard | Example App"
+
+  - name: "Token saved"
+    type: "local_storage"
+    key: "auth_token"
+```
+
+### Actions (Steps)
+
+| Action | Parâmetros | Descrição |
+|--------|------------|-----------|
+| `goto` | `url` | Navega para URL |
+| `click` | `selector` | Clica em elemento |
+| `fill` / `fill_text` | `selector`, `value` | Preenche campo de texto |
+| `hover` | `selector` | Move mouse sobre elemento |
+| `select` | `selector`, `value` | Seleciona opção em dropdown |
+| `press` | `selector`, `key` | Pressiona tecla (Enter, Escape, Tab, etc.) |
+| `wait_url` | `pattern` | Espera URL conter pattern |
+| `wait_selector` | `selector` | Espera elemento aparecer |
+| `wait_load` / `wait_navigation` | - | Espera carregamento |
+| `evaluate_js` | `script` | Executa JavaScript |
+| `scroll_to` | `selector` | Scrolla até elemento |
+| `screenshot` | `path` (opcional) | Captura screenshot |
+
+### Assertions
+
+| Type | Parâmetros | Descrição |
+|------|------------|-----------|
+| `url_contains` | `path` | URL contém texto |
+| `url_match` | `pattern` | URL match com regex |
+| `title` | `expected` | Título exato da página |
+| `selector_visible` | `selector` | Elemento visível |
+| `selector_hidden` | `selector` | Elemento oculto/não existe |
+| `element_exists` | `selector` | Elemento existe no DOM |
+| `contains_text` | `expected` | Texto existe na página |
+| `local_storage` | `key`, `expected` (opcional) | Valor em localStorage |
+| `session_storage` | `key` | Valor em sessionStorage |
+| `cookies` | `name`, `expected` (opcional) | Cookie existe |
+| `wait_function` | `script` | JS retorna true |
+
+### Teclas suportadas em `press`
+
+`Enter`, `Escape` / `Esc`, `Tab`, `Backspace`, `Delete`, `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Space`
+
+### Seletores CSS
+
+Suporta seletores CSS básicos: `#id`, `.classe`, `tag`, `tag.classe`, `input[name='email']`
+
+### Documentação completa
+
+Para exemplos detalhados e troubleshooting, consulte:
+- [docs/browser_testing.md](docs/browser_testing.md) - Documentação completa
+- [examples/browser/README.md](examples/browser/README.md) - Exemplos práticos
+
+### Output示例
+
+```
+Found 1 browser test file(s)
+
+Login Flow Test
+========================
+  ✓ Fill email field
+  ✓ Fill password field
+  ✓ Submit form
+  ✓ Wait for redirect
+  ✓ URL contains dashboard
+  ✓ Title is correct
+  ✓ Token saved
+
+================================
+Browser Test Summary: 1/1 passed
+================================
 ```
 
 ## License

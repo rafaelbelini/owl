@@ -1,0 +1,78 @@
+# Browser Test Example: Form Submission
+# Tests a contact form submission
+# Run with: owl run examples/browser/form_test.yaml
+# Start a local server first: npx serve examples/browser -p 8000
+version: 1
+
+metadata:
+  name: "Contact Form Test"
+  description: "Tests the contact form submission"
+  tags:
+    - form
+    - contact
+
+browser:
+  url: "http://localhost:8000/form.html"
+  headless: true
+  timeout_seconds: 30
+  wait_until: "networkidle2"
+  viewport:
+    width: 1280
+    height: 720
+
+steps:
+  - name: "Navigate to contact page"
+    action: "goto"
+    url: "http://localhost:8000/form.html"
+    timeout_seconds: 15
+
+  - name: "Fill name field"
+    action: "fill"
+    selector: "input[name='name']"
+    value: "John Doe"
+    timeout_seconds: 5
+
+  - name: "Fill email field"
+    action: "fill"
+    selector: "input[name='email']"
+    value: "john@example.com"
+    timeout_seconds: 5
+
+  - name: "Fill subject field"
+    action: "fill"
+    selector: "input[name='subject']"
+    value: "Test Subject"
+    timeout_seconds: 5
+
+  - name: "Fill message field"
+    action: "fill"
+    selector: "textarea[name='message']"
+    value: "This is a test message for the contact form."
+    timeout_seconds: 5
+
+  - name: "Submit form"
+    action: "click"
+    selector: "button[type='submit']"
+    timeout_seconds: 10
+
+  - name: "Wait for success message"
+    action: "wait_selector"
+    selector: ".success-message"
+    timeout_seconds: 10
+
+assertions:
+  - name: "Success message is displayed"
+    type: "selector_visible"
+    selector: ".success-message"
+
+  - name: "Form submission stored in session"
+    type: "session_storage"
+    key: "last_form_submission"
+
+  - name: "Page shows confirmation"
+    type: "contains_text"
+    expected: "Thank you"
+
+  - name: "No error messages shown"
+    type: "selector_hidden"
+    selector: ".error-message"
