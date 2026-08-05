@@ -20,6 +20,7 @@ owl run <path>
 |------|-------|---------|-------------|
 | `--verbose` | `-v` | `false` | Show response body on failure for debugging |
 | `--silent` | `-s` | `false` | Suppress individual test output, show only summary |
+| `--report` | `-r` | `false` | Generate HTML report after test execution |
 
 ## Examples
 
@@ -33,6 +34,18 @@ owl run tests/check-api.yaml
 
 ```bash
 owl run tests/
+```
+
+### Silent mode
+
+```bash
+owl run tests/ --silent
+```
+
+### Generate HTML report
+
+```bash
+owl run tests/ --report
 ```
 
 ## Exit Codes
@@ -65,6 +78,35 @@ Failed: 2
 - **✓ PASS** — Test passed (green)
 - **✗ FAIL** — Test failed assertion(s) (red)
 - **✗ ERROR** — Test encountered an error (red)
+
+## HTML Reports
+
+When using the `--report` flag, an HTML report is generated in the `.results/` directory.
+
+### Report Location
+
+Reports are saved to `.results/` (hidden directory, git-ignored):
+
+```
+.results/
+├── http_2026-08-05_14-30-00.html
+└── browser_2026-08-05_14-30-15.html
+```
+
+### Report Features
+
+- **Dashboard metrics**: Total, passed, failed, skipped counts
+- **Interactive filters**: Search by test name/ID, filter by status
+- **Detailed results table**: Test ID, suite, name, duration, status
+- **Error logs**: Failed tests show error details
+
+### Report Types
+
+| Type | Filename pattern | Description |
+|------|------------------|-------------|
+| HTTP | `http_YYYY-MM-DD_HH-MM-SS.html` | HTTP API test results |
+| Browser | `browser_YYYY-MM-DD_HH-MM-SS.html` | Browser automation results |
+| Mixed | Both types generated | When running directory with both test types |
 
 ## Finding Test Files
 

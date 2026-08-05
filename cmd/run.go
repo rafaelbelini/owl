@@ -3,14 +3,17 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/rafael/owl/cli/pkg/browser"
 	"github.com/rafael/owl/cli/pkg/monitor"
+	"github.com/rafael/owl/cli/pkg/reporter"
 	"github.com/spf13/cobra"
 )
 
 var verbose bool
 var silent bool
+var report bool
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -55,6 +58,7 @@ The test type is automatically detected based on the YAML structure:
 func init() {
 	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show verbose output on failure")
 	runCmd.Flags().BoolVarP(&silent, "silent", "s", false, "Suppress individual test output, show only summary")
+	runCmd.Flags().BoolVarP(&report, "report", "r", false, "Generate HTML report after test execution")
 }
 
 // detectTestType peeks at the first bytes of a YAML file to detect if it's HTTP or browser test
@@ -191,6 +195,11 @@ func runHTTPTests(path string) error {
 
 	monitor.PrintSummary(results)
 
+	// Generate report if flag is set
+	if report {
+		generateHTTPReport(results)
+	}
+
 	// Exit with error if any test failed
 	for _, r := range results {
 		if !r.Pass {
@@ -205,6 +214,8 @@ func runHTTPTests(path string) error {
 func runAllTestsInDirectory(path string) error {
 	httpPass := true
 	browserPass := true
+	var httpResults []monitor.Result
+	var browserResults []*browser.BrowserResult
 
 	// Run HTTP tests
 	httpFiles, err := monitor.FindTestFiles(path)
@@ -214,11 +225,11 @@ func runAllTestsInDirectory(path string) error {
 
 	if len(httpFiles) > 0 {
 		fmt.Printf("Found %d HTTP test file(s)\n", len(httpFiles))
-		results := make([]monitor.Result, 0, len(httpFiles))
+		httpResults = make([]monitor.Result, 0, len(httpFiles))
 		for _, file := range httpFiles {
 			config, err := monitor.LoadTest(file)
 			if err != nil {
-				results = append(results, monitor.Result{
+				httpResults = append(httpResults, monitor.Result{
 					Name:  file,
 					Pass:  false,
 					Error: fmt.Errorf("failed to load: %w", err),
@@ -226,13 +237,13 @@ func runAllTestsInDirectory(path string) error {
 				continue
 			}
 			result := monitor.Execute(config)
-			results = append(results, result)
+			httpResults = append(httpResults, result)
 			if !silent {
 				monitor.PrintResult(result, verbose)
 			}
 		}
-		monitor.PrintSummary(results)
-		for _, r := range results {
+		monitor.PrintSummary(httpResults)
+		for _, r := range httpResults {
 			if !r.Pass {
 				httpPass = false
 			}
@@ -247,11 +258,11 @@ func runAllTestsInDirectory(path string) error {
 
 	if len(browserFiles) > 0 {
 		fmt.Printf("Found %d browser test file(s)\n", len(browserFiles))
-		var results []*browser.BrowserResult
+		browserResults = make([]*browser.BrowserResult, 0, len(browserFiles))
 		for _, file := range browserFiles {
 			config, err := browser.LoadBrowserTest(file)
 			if err != nil {
-				results = append(results, &browser.BrowserResult{
+				browserResults = append(browserResults, &browser.BrowserResult{
 					Name:  file,
 					Pass:  false,
 					Error: fmt.Errorf("failed to load: %w", err),
@@ -259,13 +270,13 @@ func runAllTestsInDirectory(path string) error {
 				continue
 			}
 			result := browser.ExecuteBrowserTest(*config)
-			results = append(results, result)
+			browserResults = append(browserResults, result)
 			if !silent {
 				browser.PrintBrowserResult(result, verbose)
 			}
 		}
-		browser.PrintBrowserSummary(results)
-		for _, r := range results {
+		browser.PrintBrowserSummary(browserResults)
+		for _, r := range browserResults {
 			if !r.Pass {
 				browserPass = false
 			}
@@ -275,6 +286,11 @@ func runAllTestsInDirectory(path string) error {
 	if len(httpFiles) == 0 && len(browserFiles) == 0 {
 		fmt.Println("No .yaml or .yml files found.")
 		return nil
+	}
+
+	// Generate report if flag is set
+	if report {
+		generateMixedReport(httpResults, browserResults)
 	}
 
 	// Exit with error if any test failed
@@ -321,6 +337,11 @@ func runBrowserTests(path string) error {
 
 	browser.PrintBrowserSummary(results)
 
+	// Generate report if flag is set
+	if report {
+		generateBrowserReport(results)
+	}
+
 	// Exit with error if any test failed
 	for _, r := range results {
 		if !r.Pass {
@@ -329,4 +350,57 @@ func runBrowserTests(path string) error {
 	}
 
 	return nil
+}
+
+// generateHTTPReport generates an HTML report for HTTP test results
+func generateHTTPReport(results []monitor.Result) {
+	templatePath := filepath.Join("reports", "template", "template.html")
+	resultsDir := ".results"
+
+	reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeHTTP, results, nil)
+	if err != nil {
+		fmt.Printf("Warning: Failed to generate report: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Report saved to: %s\n", reportPath)
+}
+
+// generateBrowserReport generates an HTML report for browser test results
+func generateBrowserReport(results []*browser.BrowserResult) {
+	templatePath := filepath.Join("reports", "template", "template.html")
+	resultsDir := ".results"
+
+	reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeBrowser, nil, results)
+	if err != nil {
+		fmt.Printf("Warning: Failed to generate report: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Report saved to: %s\n", reportPath)
+}
+
+// generateMixedReport generates an HTML report for mixed HTTP and browser test results
+func generateMixedReport(httpResults []monitor.Result, browserResults []*browser.BrowserResult) {
+	templatePath := filepath.Join("reports", "template", "template.html")
+	resultsDir := ".results"
+
+	// Generate separate reports for HTTP and browser tests
+	if len(httpResults) > 0 {
+		reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeHTTP, httpResults, nil)
+		if err != nil {
+			fmt.Printf("Warning: Failed to generate HTTP report: %v\n", err)
+		} else {
+			fmt.Printf("HTTP Report saved to: %s\n", reportPath)
+		}
+	}
+
+	if len(browserResults) > 0 {
+		reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeBrowser, nil, browserResults)
+		if err != nil {
+			fmt.Printf("Warning: Failed to generate browser report: %v\n", err)
+		} else {
+			fmt.Printf("Browser Report saved to: %s\n", reportPath)
+		}
+	}
 }

@@ -10,3 +10,6 @@ owl
 # OS
 .DS_Store
 .claude/settings.local.json
+
+# Test results
+.results/
