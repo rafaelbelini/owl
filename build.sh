@@ -6,8 +6,6 @@ set -e
 
 echo "Building Owl CLI..."
 
-cd "$(dirname "$0")/.."
-
 # Build the CLI
 echo "Building owl binary..."
 go build -o owl .
