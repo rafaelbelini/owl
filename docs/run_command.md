@@ -19,6 +19,7 @@ owl run <path>
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--verbose` | `-v` | `false` | Show response body on failure for debugging |
+| `--silent` | `-s` | `false` | Suppress individual test output, show only summary |
 
 ## Examples
 

@@ -154,8 +154,11 @@ npx serve examples/browser -p 8000
 # 2. Executar testes
 go run . run examples/browser/
 
-# 3. Com verbose
+# 3. Com verbose (mostrar detalhes)
 go run . run examples/browser/login_test.yaml --verbose
+
+# 4. Silent mode (apenas summary)
+go run . run examples/browser/ --silent
 ```
 
 ### Exemplo: Login Flow

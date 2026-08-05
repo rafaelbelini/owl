@@ -10,6 +10,7 @@ import (
 )
 
 var verbose bool
+var silent bool
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -53,6 +54,7 @@ The test type is automatically detected based on the YAML structure:
 
 func init() {
 	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show verbose output on failure")
+	runCmd.Flags().BoolVarP(&silent, "silent", "s", false, "Suppress individual test output, show only summary")
 }
 
 // detectTestType peeks at the first bytes of a YAML file to detect if it's HTTP or browser test
@@ -182,7 +184,9 @@ func runHTTPTests(path string) error {
 
 		result := monitor.Execute(config)
 		results = append(results, result)
-		monitor.PrintResult(result, verbose)
+		if !silent {
+			monitor.PrintResult(result, verbose)
+		}
 	}
 
 	monitor.PrintSummary(results)
@@ -223,7 +227,9 @@ func runAllTestsInDirectory(path string) error {
 			}
 			result := monitor.Execute(config)
 			results = append(results, result)
-			monitor.PrintResult(result, verbose)
+			if !silent {
+				monitor.PrintResult(result, verbose)
+			}
 		}
 		monitor.PrintSummary(results)
 		for _, r := range results {
@@ -254,7 +260,9 @@ func runAllTestsInDirectory(path string) error {
 			}
 			result := browser.ExecuteBrowserTest(*config)
 			results = append(results, result)
-			browser.PrintBrowserResult(result, verbose)
+			if !silent {
+				browser.PrintBrowserResult(result, verbose)
+			}
 		}
 		browser.PrintBrowserSummary(results)
 		for _, r := range results {
@@ -306,7 +314,9 @@ func runBrowserTests(path string) error {
 
 		result := browser.ExecuteBrowserTest(*config)
 		results = append(results, result)
-		browser.PrintBrowserResult(result, verbose)
+		if !silent {
+			browser.PrintBrowserResult(result, verbose)
+		}
 	}
 
 	browser.PrintBrowserSummary(results)
