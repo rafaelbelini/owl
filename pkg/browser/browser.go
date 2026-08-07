@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/rafael/owl/cli/pkg/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -207,13 +208,28 @@ func ExecuteBrowserTest(config BrowserTestConfig) *BrowserResult {
 
 // LoadBrowserTest loads a browser test from a YAML file
 func LoadBrowserTest(path string) (*BrowserTestConfig, error) {
+	return LoadBrowserTestWithConfig(path, nil)
+}
+
+// LoadBrowserTestWithConfig loads a browser test from a YAML file and resolves placeholders
+func LoadBrowserTestWithConfig(path string, cfg *config.Config) (*BrowserTestConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
+	content := string(data)
+
+	// Resolve placeholders if config is provided
+	if cfg != nil {
+		content, err = cfg.ResolveValues(content)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve config: %w", err)
+		}
+	}
+
 	var config BrowserTestConfig
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	if err := yaml.Unmarshal([]byte(content), &config); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 

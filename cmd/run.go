@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/rafael/owl/cli/pkg/browser"
+	"github.com/rafael/owl/cli/pkg/config"
 	"github.com/rafael/owl/cli/pkg/monitor"
 	"github.com/rafael/owl/cli/pkg/reporter"
 	"github.com/spf13/cobra"
@@ -173,10 +174,33 @@ func runHTTPTests(path string) error {
 
 	fmt.Printf("Found %d HTTP test file(s)\n", len(files))
 
+	// Load config for single file execution
+	cfgLoader := config.NewLoader()
+
 	// Execute each test
 	results := make([]monitor.Result, 0, len(files))
 	for _, file := range files {
-		config, err := monitor.LoadTest(file)
+		// Load config for this test
+		if err := cfgLoader.LoadConfigForPath(file); err != nil {
+			results = append(results, monitor.Result{
+				Name:  file,
+				Pass:  false,
+				Error: fmt.Errorf("failed to load config: %w", err),
+			})
+			continue
+		}
+
+		cfg, err := cfgLoader.GetConfigForTest(file)
+		if err != nil {
+			results = append(results, monitor.Result{
+				Name:  file,
+				Pass:  false,
+				Error: fmt.Errorf("failed to get config: %w", err),
+			})
+			continue
+		}
+
+		testConfig, err := monitor.LoadTestWithConfig(file, cfg)
 		if err != nil {
 			results = append(results, monitor.Result{
 				Name:  file,
@@ -186,7 +210,7 @@ func runHTTPTests(path string) error {
 			continue
 		}
 
-		result := monitor.Execute(config)
+		result := monitor.Execute(testConfig)
 		results = append(results, result)
 		if !silent {
 			monitor.PrintResult(result, verbose)
@@ -217,6 +241,12 @@ func runAllTestsInDirectory(path string) error {
 	var httpResults []monitor.Result
 	var browserResults []*browser.BrowserResult
 
+	// Load all configs from the directory tree
+	cfgLoader := config.NewLoader()
+	if err := cfgLoader.LoadConfigsForDirectory(path); err != nil {
+		return fmt.Errorf("failed to load configs: %w", err)
+	}
+
 	// Run HTTP tests
 	httpFiles, err := monitor.FindTestFiles(path)
 	if err != nil {
@@ -227,7 +257,13 @@ func runAllTestsInDirectory(path string) error {
 		fmt.Printf("Found %d HTTP test file(s)\n", len(httpFiles))
 		httpResults = make([]monitor.Result, 0, len(httpFiles))
 		for _, file := range httpFiles {
-			config, err := monitor.LoadTest(file)
+			cfg, err := cfgLoader.GetConfigForTest(file)
+			if err != nil {
+				// If no config found, that's ok - we continue with nil config
+				cfg = nil
+			}
+
+			testConfig, err := monitor.LoadTestWithConfig(file, cfg)
 			if err != nil {
 				httpResults = append(httpResults, monitor.Result{
 					Name:  file,
@@ -236,7 +272,8 @@ func runAllTestsInDirectory(path string) error {
 				})
 				continue
 			}
-			result := monitor.Execute(config)
+
+			result := monitor.Execute(testConfig)
 			httpResults = append(httpResults, result)
 			if !silent {
 				monitor.PrintResult(result, verbose)
@@ -260,7 +297,13 @@ func runAllTestsInDirectory(path string) error {
 		fmt.Printf("Found %d browser test file(s)\n", len(browserFiles))
 		browserResults = make([]*browser.BrowserResult, 0, len(browserFiles))
 		for _, file := range browserFiles {
-			config, err := browser.LoadBrowserTest(file)
+			cfg, err := cfgLoader.GetConfigForTest(file)
+			if err != nil {
+				// If no config found, that's ok - we continue with nil config
+				cfg = nil
+			}
+
+			testConfig, err := browser.LoadBrowserTestWithConfig(file, cfg)
 			if err != nil {
 				browserResults = append(browserResults, &browser.BrowserResult{
 					Name:  file,
@@ -269,7 +312,8 @@ func runAllTestsInDirectory(path string) error {
 				})
 				continue
 			}
-			result := browser.ExecuteBrowserTest(*config)
+
+			result := browser.ExecuteBrowserTest(*testConfig)
 			browserResults = append(browserResults, result)
 			if !silent {
 				browser.PrintBrowserResult(result, verbose)
@@ -315,10 +359,33 @@ func runBrowserTests(path string) error {
 
 	fmt.Printf("Found %d browser test file(s)\n", len(files))
 
+	// Load config for single file execution
+	cfgLoader := config.NewLoader()
+
 	// Execute each test
 	var results []*browser.BrowserResult
 	for _, file := range files {
-		config, err := browser.LoadBrowserTest(file)
+		// Load config for this test
+		if err := cfgLoader.LoadConfigForPath(file); err != nil {
+			results = append(results, &browser.BrowserResult{
+				Name:  file,
+				Pass:  false,
+				Error: fmt.Errorf("failed to load config: %w", err),
+			})
+			continue
+		}
+
+		cfg, err := cfgLoader.GetConfigForTest(file)
+		if err != nil {
+			results = append(results, &browser.BrowserResult{
+				Name:  file,
+				Pass:  false,
+				Error: fmt.Errorf("failed to get config: %w", err),
+			})
+			continue
+		}
+
+		testConfig, err := browser.LoadBrowserTestWithConfig(file, cfg)
 		if err != nil {
 			results = append(results, &browser.BrowserResult{
 				Name:  file,
@@ -328,7 +395,7 @@ func runBrowserTests(path string) error {
 			continue
 		}
 
-		result := browser.ExecuteBrowserTest(*config)
+		result := browser.ExecuteBrowserTest(*testConfig)
 		results = append(results, result)
 		if !silent {
 			browser.PrintBrowserResult(result, verbose)

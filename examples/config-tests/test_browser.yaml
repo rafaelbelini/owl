@@ -1,0 +1,40 @@
+# Browser Test with Config
+# Uses placeholders for base URL and other config values
+version: 1
+
+metadata:
+  name: "Browser Test with Config"
+  description: "Tests browser automation with config placeholders"
+
+browser:
+  url: "${base_url}/login.html"
+  headless: true
+  timeout_seconds: 30
+  wait_until: "networkidle2"
+  viewport:
+    width: 1280
+    height: 720
+
+steps:
+  - name: "Navigate to login"
+    action: "goto"
+    url: "${base_url}/login.html"
+
+  - name: "Fill email"
+    action: "fill"
+    selector: "input[name='email']"
+    value: "${test_user_email}"
+
+  - name: "Fill password"
+    action: "fill"
+    selector: "input[name='password']"
+    value: "${test_password}"
+
+  - name: "Submit"
+    action: "click"
+    selector: "#submit-btn"
+
+assertions:
+  - name: "Redirected to dashboard"
+    type: "url_contains"
+    path: "dashboard"

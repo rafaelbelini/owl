@@ -262,6 +262,31 @@ Para exemplos detalhados e troubleshooting, consulte:
 - [docs/browser_testing.md](docs/browser_testing.md) - Documentação completa
 - [examples/browser/README.md](examples/browser/README.md) - Exemplos práticos
 
+## Configuration Files
+
+Owl supports configuration files (`owl.config`) for reusable values:
+
+```bash
+# owl.config
+api_base_url=https://api.example.com
+api_token=Bearer my_token
+```
+
+```yaml
+# test.yaml
+request:
+  url: "${api_base_url}/users"
+  headers:
+    Authorization: "${api_token}"
+```
+
+**Features:**
+- Directory scoping: configs in subdirectories override parent configs
+- Placeholder syntax: `${key_name}`
+- Automatic loading from test file's directory tree
+
+Consulte [docs/configuration.md](docs/configuration.md) para detalhes completos.
+
 ### Output示例
 
 ```

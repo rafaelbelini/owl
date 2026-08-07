@@ -1,0 +1,19 @@
+# Test with Missing Key
+# This should fail because non_existent_key doesn't exist
+version: 1
+
+metadata:
+  name: "Test Missing Key"
+  description: "Test error handling for missing config key"
+
+request:
+  url: "${api_base_url}/test"
+  method: GET
+  headers:
+    Authorization: "${non_existent_key}"
+
+assertions:
+  - type: "status_code"
+    expected: 200
+
+timeout_seconds: 10

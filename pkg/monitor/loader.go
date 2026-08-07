@@ -6,18 +6,35 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rafael/owl/cli/pkg/config"
 	"gopkg.in/yaml.v3"
 )
 
 // LoadTest loads a test configuration from a YAML file
 func LoadTest(path string) (TestConfig, error) {
+	return LoadTestWithConfig(path, nil)
+}
+
+// LoadTestWithConfig loads a test configuration from a YAML file and resolves placeholders using config
+func LoadTestWithConfig(path string, cfg *config.Config) (TestConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return TestConfig{}, fmt.Errorf("failed to read file %s: %w", path, err)
 	}
 
+	// Convert to string for config resolution
+	content := string(data)
+
+	// Resolve placeholders if config is provided
+	if cfg != nil {
+		content, err = cfg.ResolveValues(content)
+		if err != nil {
+			return TestConfig{}, fmt.Errorf("failed to resolve config in %s: %w", path, err)
+		}
+	}
+
 	var config TestConfig
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	if err := yaml.Unmarshal([]byte(content), &config); err != nil {
 		return TestConfig{}, fmt.Errorf("failed to parse YAML in %s: %w", path, err)
 	}
 

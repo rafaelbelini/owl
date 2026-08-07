@@ -1,0 +1,20 @@
+# Nested Test with Config Override
+# Uses base_url from parent and api_token from this directory
+version: 1
+
+metadata:
+  name: "Nested API Test"
+  description: "Tests API with nested config override"
+
+request:
+  url: "${api_base_url}/v2/users"
+  method: GET
+  headers:
+    Authorization: "${api_token}"
+    X-Environment: "${environment}"
+
+assertions:
+  - type: "status_code"
+    expected: 200
+
+timeout_seconds: 10
