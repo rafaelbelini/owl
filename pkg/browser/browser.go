@@ -114,7 +114,7 @@ type ConsoleLog struct {
 }
 
 // ExecuteBrowserTest runs a browser test based on the provided configuration
-func ExecuteBrowserTest(config BrowserTestConfig) *BrowserResult {
+func ExecuteBrowserTest(config BrowserTestConfig, visibleOverride ...bool) *BrowserResult {
 	result := &BrowserResult{
 		Name:       config.Metadata.Name,
 		Pass:       true,
@@ -137,9 +137,16 @@ func ExecuteBrowserTest(config BrowserTestConfig) *BrowserResult {
 		config.Browser.Viewport.Height = 720
 	}
 
+	// Determine if browser should be headless
+	isHeadless := config.Browser.Headless
+	// If visibleOverride is true and explicitly provided, force visible mode
+	if len(visibleOverride) > 0 && visibleOverride[0] {
+		isHeadless = false
+	}
+
 	// Launch browser
 	browserLauncher := launcher.New().
-		Headless(config.Browser.Headless).
+		Headless(isHeadless).
 		Set("viewport", fmt.Sprintf("%d,%d", config.Browser.Viewport.Width, config.Browser.Viewport.Height)).
 		Set("no-sandbox", "").
 		Set("disable-setuid-sandbox", "")

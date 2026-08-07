@@ -15,6 +15,7 @@ import (
 var verbose bool
 var silent bool
 var report string
+var visible bool
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -60,6 +61,7 @@ func init() {
 	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show verbose output on failure")
 	runCmd.Flags().BoolVarP(&silent, "silent", "s", false, "Suppress individual test output, show only summary")
 	runCmd.Flags().StringVarP(&report, "report", "", "", "Generate report in specified format (html, json)")
+	runCmd.Flags().BoolVarP(&visible, "visible", "", false, "Run browser tests in visible mode (not headless)")
 }
 
 // detectTestType peeks at the first bytes of a YAML file to detect if it's HTTP or browser test
@@ -313,7 +315,7 @@ func runAllTestsInDirectory(path string) error {
 				continue
 			}
 
-			result := browser.ExecuteBrowserTest(*testConfig)
+			result := browser.ExecuteBrowserTest(*testConfig, visible)
 			browserResults = append(browserResults, result)
 			if !silent {
 				browser.PrintBrowserResult(result, verbose)
@@ -395,7 +397,7 @@ func runBrowserTests(path string) error {
 			continue
 		}
 
-		result := browser.ExecuteBrowserTest(*testConfig)
+		result := browser.ExecuteBrowserTest(*testConfig, visible)
 		results = append(results, result)
 		if !silent {
 			browser.PrintBrowserResult(result, verbose)
