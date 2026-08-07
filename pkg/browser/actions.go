@@ -42,7 +42,13 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("click action requires selector field")
 			return result
 		}
-		err := page.Timeout(timeout).MustElement(step.Selector).Click(proto.InputMouseButtonLeft, 1)
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
+		err = el.Click(proto.InputMouseButtonLeft, 1)
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to click %s: %w", step.Selector, err)
@@ -60,8 +66,13 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("fill action requires value field as string")
 			return result
 		}
-		el := page.Timeout(timeout).MustElement(step.Selector)
-		err := el.Input(value)
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
+		err = el.Input(value)
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to fill %s: %w", step.Selector, err)
@@ -80,8 +91,13 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("fill_text action requires value field as string")
 			return result
 		}
-		el := page.Timeout(timeout).MustElement(step.Selector)
-		err := el.Input(value)
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
+		err = el.Input(value)
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to fill_text %s: %w", step.Selector, err)
@@ -93,8 +109,13 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("hover action requires selector field")
 			return result
 		}
-		el := page.Timeout(timeout).MustElement(step.Selector)
-		err := el.Hover()
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
+		err = el.Hover()
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to hover %s: %w", step.Selector, err)
@@ -112,7 +133,13 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("select action requires value field as string")
 			return result
 		}
-		err := page.Timeout(timeout).MustElement(step.Selector).Select([]string{value}, true, "")
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
+		err = el.Select([]string{value}, true, "")
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to select option in %s: %w", step.Selector, err)
@@ -205,9 +232,14 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("press action requires key field")
 			return result
 		}
-		el := page.Timeout(timeout).MustElement(step.Selector)
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
 		// Focus the element first, then press the key using the page keyboard
-		err := el.Focus()
+		err = el.Focus()
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to focus element for key press '%s': %w", step.Key, err)
@@ -257,8 +289,13 @@ func ExecuteStep(page *rod.Page, step StepConfig, ctx context.Context) StepResul
 			result.Error = fmt.Errorf("scroll_to action requires selector field")
 			return result
 		}
-		el := page.Timeout(timeout).MustElement(step.Selector)
-		err := el.ScrollIntoView()
+		el, err := page.Timeout(timeout).Element(step.Selector)
+		if err != nil {
+			result.Pass = false
+			result.Error = fmt.Errorf("failed to find element %s: %w", step.Selector, err)
+			return result
+		}
+		err = el.ScrollIntoView()
 		if err != nil {
 			result.Pass = false
 			result.Error = fmt.Errorf("failed to scroll to %s: %w", step.Selector, err)
