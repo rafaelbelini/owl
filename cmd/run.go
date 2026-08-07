@@ -13,7 +13,7 @@ import (
 
 var verbose bool
 var silent bool
-var report bool
+var report string
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -58,7 +58,7 @@ The test type is automatically detected based on the YAML structure:
 func init() {
 	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show verbose output on failure")
 	runCmd.Flags().BoolVarP(&silent, "silent", "s", false, "Suppress individual test output, show only summary")
-	runCmd.Flags().BoolVarP(&report, "report", "r", false, "Generate HTML report after test execution")
+	runCmd.Flags().StringVarP(&report, "report", "", "", "Generate report in specified format (html, json)")
 }
 
 // detectTestType peeks at the first bytes of a YAML file to detect if it's HTTP or browser test
@@ -196,7 +196,7 @@ func runHTTPTests(path string) error {
 	monitor.PrintSummary(results)
 
 	// Generate report if flag is set
-	if report {
+	if report != "" {
 		generateHTTPReport(results)
 	}
 
@@ -289,7 +289,7 @@ func runAllTestsInDirectory(path string) error {
 	}
 
 	// Generate report if flag is set
-	if report {
+	if report != "" {
 		generateMixedReport(httpResults, browserResults)
 	}
 
@@ -338,7 +338,7 @@ func runBrowserTests(path string) error {
 	browser.PrintBrowserSummary(results)
 
 	// Generate report if flag is set
-	if report {
+	if report != "" {
 		generateBrowserReport(results)
 	}
 
@@ -352,12 +352,17 @@ func runBrowserTests(path string) error {
 	return nil
 }
 
-// generateHTTPReport generates an HTML report for HTTP test results
+// generateHTTPReport generates a report for HTTP test results
 func generateHTTPReport(results []monitor.Result) {
 	templatePath := filepath.Join("reports", "template", "template.html")
 	resultsDir := ".results"
+	reportFormat := reporter.FormatHTML
 
-	reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeHTTP, results, nil)
+	if report == "json" {
+		reportFormat = reporter.FormatJSON
+	}
+
+	reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reportFormat, reporter.ReportTypeHTTP, results, nil)
 	if err != nil {
 		fmt.Printf("Warning: Failed to generate report: %v\n", err)
 		return
@@ -366,12 +371,17 @@ func generateHTTPReport(results []monitor.Result) {
 	fmt.Printf("Report saved to: %s\n", reportPath)
 }
 
-// generateBrowserReport generates an HTML report for browser test results
+// generateBrowserReport generates a report for browser test results
 func generateBrowserReport(results []*browser.BrowserResult) {
 	templatePath := filepath.Join("reports", "template", "template.html")
 	resultsDir := ".results"
+	reportFormat := reporter.FormatHTML
 
-	reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeBrowser, nil, results)
+	if report == "json" {
+		reportFormat = reporter.FormatJSON
+	}
+
+	reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reportFormat, reporter.ReportTypeBrowser, nil, results)
 	if err != nil {
 		fmt.Printf("Warning: Failed to generate report: %v\n", err)
 		return
@@ -380,14 +390,19 @@ func generateBrowserReport(results []*browser.BrowserResult) {
 	fmt.Printf("Report saved to: %s\n", reportPath)
 }
 
-// generateMixedReport generates an HTML report for mixed HTTP and browser test results
+// generateMixedReport generates reports for mixed HTTP and browser test results
 func generateMixedReport(httpResults []monitor.Result, browserResults []*browser.BrowserResult) {
 	templatePath := filepath.Join("reports", "template", "template.html")
 	resultsDir := ".results"
+	reportFormat := reporter.FormatHTML
+
+	if report == "json" {
+		reportFormat = reporter.FormatJSON
+	}
 
 	// Generate separate reports for HTTP and browser tests
 	if len(httpResults) > 0 {
-		reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeHTTP, httpResults, nil)
+		reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reportFormat, reporter.ReportTypeHTTP, httpResults, nil)
 		if err != nil {
 			fmt.Printf("Warning: Failed to generate HTTP report: %v\n", err)
 		} else {
@@ -396,7 +411,7 @@ func generateMixedReport(httpResults []monitor.Result, browserResults []*browser
 	}
 
 	if len(browserResults) > 0 {
-		reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reporter.ReportTypeBrowser, nil, browserResults)
+		reportPath, err := reporter.GenerateReport(templatePath, resultsDir, reportFormat, reporter.ReportTypeBrowser, nil, browserResults)
 		if err != nil {
 			fmt.Printf("Warning: Failed to generate browser report: %v\n", err)
 		} else {
