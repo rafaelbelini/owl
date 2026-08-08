@@ -62,6 +62,42 @@ assertions:
     # parâmetros específicos
 ```
 
+## Retry Configuration
+
+Tests can be configured to automatically retry on transient errors.
+
+```yaml
+version: 1
+
+metadata:
+  name: "Test with Retry"
+
+retries: 3           # Number of retries on failure (default: 0)
+retry_interval: 1000 # Interval between retries in milliseconds (default: 0)
+
+browser:
+  url: "http://localhost:8000/page.html"
+  headless: true
+
+steps:
+  - name: "Navigate"
+    action: "goto"
+    url: "http://localhost:8000/page.html"
+
+assertions:
+  - type: "selector_visible"
+    selector: ".content"
+```
+
+**Retryable errors:**
+- Timeout errors (navigation timeout, page load timeout)
+- Network errors (connection refused, connection reset)
+- Context deadline exceeded
+
+**Not retried:**
+- Assertion failures (element not found, text mismatch, etc.)
+- HTTP errors (4xx, 5xx responses)
+
 ## Configuração do Browser
 
 ### Opções disponíveis

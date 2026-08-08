@@ -15,6 +15,8 @@ type TestConfig struct {
 	Request        RequestConfig          `yaml:"request"`
 	Assertions     []AssertionConfig      `yaml:"assertions"`
 	TimeoutSeconds int                    `yaml:"timeout_seconds"`
+	Retries        int                    `yaml:"retries"`
+	RetryInterval  int                    `yaml:"retry_interval"`
 }
 
 // MetadataConfig holds optional metadata for the test
@@ -60,6 +62,11 @@ type AssertionResult struct {
 
 // Execute performs the HTTP request and validates assertions
 func Execute(config TestConfig) Result {
+	return ExecuteWithRetry(config, config.Retries, config.RetryInterval)
+}
+
+// ExecuteWithRetry performs the HTTP request with retry support
+func ExecuteWithRetry(config TestConfig, retryCount int, retryIntervalMs int) Result {
 	result := Result{Name: config.Metadata.Name}
 
 	// Default timeout
@@ -67,6 +74,47 @@ func Execute(config TestConfig) Result {
 	if config.TimeoutSeconds > 0 {
 		timeout = time.Duration(config.TimeoutSeconds) * time.Second
 	}
+
+	retryInterval := time.Duration(retryIntervalMs) * time.Millisecond
+
+	var lastErr error
+	for attempt := 0; attempt <= retryCount; attempt++ {
+		if attempt > 0 {
+			// Wait before retry
+			time.Sleep(retryInterval)
+		}
+
+		result = executeSingleAttempt(config, timeout)
+
+		// Check if we should retry
+		if !result.Pass {
+			// Assertion failure - don't retry
+			return result
+		}
+
+		if result.Error != nil {
+			// Error occurred - check if it's retryable
+			lastErr = result.Error
+			if !isRetryableError(result.Error) {
+				return result
+			}
+			// Will retry if we have attempts left
+			continue
+		}
+
+		// Success
+		return result
+	}
+
+	// All retries exhausted
+	result.Pass = false
+	result.Error = fmt.Errorf("all %d retry attempts failed: %w", retryCount, lastErr)
+	return result
+}
+
+// executeSingleAttempt performs a single HTTP request attempt
+func executeSingleAttempt(config TestConfig, timeout time.Duration) Result {
+	result := Result{Name: config.Metadata.Name}
 
 	client := &http.Client{Timeout: timeout}
 
@@ -130,4 +178,29 @@ func Execute(config TestConfig) Result {
 
 	result.Pass = allPassed
 	return result
+}
+
+// isRetryableError checks if an error should trigger a retry
+func isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	// Check for timeout and connection errors
+	retryablePatterns := []string{
+		"timeout",
+		"context deadline",
+		"connection refused",
+		"connection reset",
+		"no such host",
+		"network is unreachable",
+		"i/o timeout",
+		"use of closed network connection",
+	}
+	for _, pattern := range retryablePatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	return false
 }

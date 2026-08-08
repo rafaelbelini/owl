@@ -17,11 +17,13 @@ import (
 
 // BrowserTestConfig represents the full parsed YAML test structure
 type BrowserTestConfig struct {
-	Version    int                     `yaml:"version"`
-	Metadata   MetadataConfig          `yaml:"metadata"`
-	Browser    BrowserConfig           `yaml:"browser"`
-	Steps      []StepConfig            `yaml:"steps"`
-	Assertions []BrowserAssertionConfig `yaml:"assertions"`
+	Version       int                      `yaml:"version"`
+	Metadata      MetadataConfig           `yaml:"metadata"`
+	Browser       BrowserConfig            `yaml:"browser"`
+	Steps         []StepConfig             `yaml:"steps"`
+	Assertions    []BrowserAssertionConfig `yaml:"assertions"`
+	Retries       int                     `yaml:"retries"`
+	RetryInterval int                     `yaml:"retry_interval"`
 }
 
 // MetadataConfig holds test metadata
@@ -115,14 +117,11 @@ type ConsoleLog struct {
 
 // ExecuteBrowserTest runs a browser test based on the provided configuration
 func ExecuteBrowserTest(config BrowserTestConfig, visibleOverride ...bool) *BrowserResult {
-	result := &BrowserResult{
-		Name:       config.Metadata.Name,
-		Pass:       true,
-		Steps:      make([]StepResult, 0),
-		Assertions: make([]AssertionResult, 0),
-		ConsoleLogs: make([]ConsoleLog, 0),
-	}
+	return ExecuteBrowserTestWithRetry(config, config.Retries, config.RetryInterval, visibleOverride...)
+}
 
+// ExecuteBrowserTestWithRetry runs a browser test with retry support
+func ExecuteBrowserTestWithRetry(config BrowserTestConfig, retryCount int, retryIntervalMs int, visibleOverride ...bool) *BrowserResult {
 	// Set defaults
 	if config.Browser.TimeoutSeconds == 0 {
 		config.Browser.TimeoutSeconds = 30
@@ -139,9 +138,67 @@ func ExecuteBrowserTest(config BrowserTestConfig, visibleOverride ...bool) *Brow
 
 	// Determine if browser should be headless
 	isHeadless := config.Browser.Headless
-	// If visibleOverride is true and explicitly provided, force visible mode
 	if len(visibleOverride) > 0 && visibleOverride[0] {
 		isHeadless = false
+	}
+
+	retryInterval := time.Duration(retryIntervalMs) * time.Millisecond
+
+	var lastErr error
+	for attempt := 0; attempt <= retryCount; attempt++ {
+		if attempt > 0 {
+			// Wait before retry
+			time.Sleep(retryInterval)
+		}
+
+		result := executeBrowserTestAttempt(config, isHeadless)
+
+		// Check if we should retry
+		if result.Pass {
+			// Success - return immediately
+			return result
+		}
+
+		// If no error but test failed, it means an assertion failed - don't retry
+		if result.Error == nil {
+			return result
+		}
+
+		// Check if it's a retryable error (timeout, network, etc.)
+		if isRetryableBrowserError(result.Error) {
+			lastErr = result.Error
+			continue
+		}
+
+		// Non-retryable error (assertion error)
+		return result
+
+		// If no error but test failed, it means an assertion failed - don't retry
+		if result.Error == nil {
+			return result
+		}
+
+		lastErr = result.Error
+	}
+
+	// All retries exhausted
+	return &BrowserResult{
+		Name:       config.Metadata.Name,
+		Pass:       false,
+		Steps:      []StepResult{},
+		Assertions: []AssertionResult{},
+		Error:      fmt.Errorf("all %d retry attempts failed: %w", retryCount, lastErr),
+	}
+}
+
+// executeBrowserTestAttempt performs a single browser test attempt
+func executeBrowserTestAttempt(config BrowserTestConfig, isHeadless bool) *BrowserResult {
+	result := &BrowserResult{
+		Name:       config.Metadata.Name,
+		Pass:       true,
+		Steps:      make([]StepResult, 0),
+		Assertions: make([]AssertionResult, 0),
+		ConsoleLogs: make([]ConsoleLog, 0),
 	}
 
 	// Launch browser
@@ -211,6 +268,29 @@ func ExecuteBrowserTest(config BrowserTestConfig, visibleOverride ...bool) *Brow
 	}
 
 	return result
+}
+
+// isRetryableBrowserError checks if an error should trigger a retry
+func isRetryableBrowserError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	retryablePatterns := []string{
+		"timeout",
+		"context deadline",
+		"connection",
+		"network",
+		"i/o timeout",
+		"temporary failure",
+		"name or service not known",
+	}
+	for _, pattern := range retryablePatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // LoadBrowserTest loads a browser test from a YAML file

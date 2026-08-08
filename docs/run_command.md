@@ -157,3 +157,77 @@ When given a directory, the CLI recursively walks the directory tree and collect
 ## Timeout
 
 Each test can define its own timeout via `timeout_seconds` in the YAML. Default is 10 seconds if not specified.
+
+## Retry Configuration
+
+Tests can be configured to automatically retry on transient errors such as timeouts or network issues.
+
+### HTTP Tests
+
+```yaml
+version: 1
+
+metadata:
+  name: "API Test with Retry"
+
+retries: 3           # Number of retries on failure (default: 0)
+retry_interval: 1000 # Interval between retries in milliseconds (default: 0)
+
+request:
+  url: "https://api.example.com/users"
+  method: GET
+
+assertions:
+  - type: "status_code"
+    expected: 200
+```
+
+### Browser Tests
+
+```yaml
+version: 1
+
+metadata:
+  name: "Browser Test with Retry"
+
+retries: 2           # Number of retries on failure (default: 0)
+retry_interval: 500  # Interval between retries in milliseconds (default: 0)
+
+browser:
+  url: "https://example.com"
+  headless: true
+
+steps:
+  - name: "Navigate"
+    action: "goto"
+    url: "https://example.com"
+
+assertions:
+  - type: "url_contains"
+    path: "example.com"
+```
+
+### Retry Behavior
+
+| Condition | Retry? | Reason |
+|-----------|--------|--------|
+| Timeout error | Yes | Transient network issue |
+| Connection refused | Yes | Service temporarily unavailable |
+| Assertion failure | No | Test logic failure, retry won't help |
+| HTTP 4xx/5xx response | No | Server returned an error response |
+| Invalid selector | No | Element not found, retry won't help |
+
+### Retryable Errors
+
+The following errors trigger a retry:
+
+- **Timeout errors**: `context deadline exceeded`, `i/o timeout`
+- **Network errors**: `connection refused`, `connection reset`, `no such host`, `network is unreachable`
+- **Browser errors**: Navigation timeout, page load timeout
+
+### Default Values
+
+```yaml
+retries: 0         # No retries by default
+retry_interval: 0  # No delay between retries
+```
