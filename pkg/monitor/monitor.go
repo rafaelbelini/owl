@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/rafael/owl/cli/pkg/script"
 )
 
 // TestConfig represents the parsed YAML configuration
@@ -17,6 +19,10 @@ type TestConfig struct {
 	TimeoutSeconds int                    `yaml:"timeout_seconds"`
 	Retries        int                    `yaml:"retries"`
 	RetryInterval  int                    `yaml:"retry_interval"`
+	BeforeScript   string                 `yaml:"before_script"`
+	AfterScript    string                 `yaml:"after_script"`
+	ScriptTimeout  int                    `yaml:"script_timeout"`
+	WorkDir        string                 `yaml:"-"`
 }
 
 // MetadataConfig holds optional metadata for the test
@@ -62,7 +68,40 @@ type AssertionResult struct {
 
 // Execute performs the HTTP request and validates assertions
 func Execute(config TestConfig) Result {
-	return ExecuteWithRetry(config, config.Retries, config.RetryInterval)
+	// Set default script timeout if not specified
+	scriptTimeout := 30 * time.Second
+	if config.ScriptTimeout > 0 {
+		scriptTimeout = time.Duration(config.ScriptTimeout) * time.Second
+	}
+
+	// Run before_script if defined
+	if config.BeforeScript != "" {
+		runner := script.NewRunner(scriptTimeout)
+		if err := runner.Run(config.BeforeScript, config.WorkDir); err != nil {
+			return Result{
+				Name:  config.Metadata.Name,
+				Pass:  false,
+				Error: fmt.Errorf("before_script failed: %w", err),
+			}
+		}
+	}
+
+	// Execute the test
+	result := ExecuteWithRetry(config, config.Retries, config.RetryInterval)
+
+	// Run after_script if defined (even if test failed)
+	if config.AfterScript != "" {
+		runner := script.NewRunner(scriptTimeout)
+		// after_script failures are logged but don't change the test result
+		if err := runner.Run(config.AfterScript, config.WorkDir); err != nil {
+			// Log the error but don't fail the test if it already passed/failed
+			if result.Error == nil {
+				result.Error = fmt.Errorf("after_script failed: %w", err)
+			}
+		}
+	}
+
+	return result
 }
 
 // ExecuteWithRetry performs the HTTP request with retry support

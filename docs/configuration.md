@@ -9,6 +9,7 @@ Configuration files allow you to:
 - Separate sensitive data (like API tokens) from test definitions
 - Change configuration per environment without modifying test files
 - Scope configurations to specific directories
+- Define global pre/post scripts that run before or after all tests
 
 ## File Format
 
@@ -19,6 +20,10 @@ Configuration files are named `owl.config` and use a simple `key=value` format:
 api_base_url=https://api.example.com
 api_token=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 test_email=test@example.com
+
+# Global scripts (optional)
+before_all_script=./scripts/setup.sh
+after_all_script=./scripts/teardown.sh
 ```
 
 ### Rules
@@ -150,6 +155,53 @@ environment=staging          # Override parent value
 - `api_url`: `https://api.example.com` (inherited from parent)
 - `api_token`: `Bearer child_token` (overridden in child)
 - `environment`: `staging` (overridden in child)
+
+## Global Scripts
+
+You can define global scripts that run before and after all tests in the `owl.config` file:
+
+### before_all_script
+
+A script that runs once before any tests in the scope are executed. Use this for setup tasks like:
+- Starting services
+- Initializing databases
+- Creating test fixtures
+
+### after_all_script
+
+A script that runs once after all tests in the scope have completed (even if some tests failed). Use this for cleanup tasks like:
+- Stopping services
+- Cleaning up temporary files
+- Generating reports
+
+**Example:**
+
+```bash
+# owl.config
+before_all_script=./scripts/setup.sh
+after_all_script=./scripts/teardown.sh
+```
+
+**scripts/setup.sh:**
+```bash
+#!/bin/bash
+echo "Setting up test environment..."
+docker-compose up -d
+```
+
+**scripts/teardown.sh:**
+```bash
+#!/bin/bash
+echo "Cleaning up test environment..."
+docker-compose down
+```
+
+### Script Execution
+
+- Scripts are executed in the directory containing the `owl.config` file
+- If a `before_all_script` fails, no tests are run and the test suite fails
+- If an `after_all_script` fails, a warning is shown but the test results are not affected
+- Scripts support a 30-second default timeout (configurable via `script_timeout` in test YAML)
 
 ## Error Handling
 

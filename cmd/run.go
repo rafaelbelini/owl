@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/rafael/owl/cli/pkg/browser"
 	"github.com/rafael/owl/cli/pkg/config"
 	"github.com/rafael/owl/cli/pkg/monitor"
 	"github.com/rafael/owl/cli/pkg/reporter"
+	"github.com/rafael/owl/cli/pkg/script"
 	"github.com/spf13/cobra"
 )
 
@@ -162,6 +164,40 @@ func indexOf(s, substr string) int {
 	return -1
 }
 
+// runGlobalScripts executes global before_all_script and after_all_script from config
+func runGlobalScripts(cfg *config.Config, scriptType string) error {
+	if cfg == nil {
+		return nil
+	}
+
+	key := ""
+	if scriptType == "before" {
+		key = "before_all_script"
+	} else if scriptType == "after" {
+		key = "after_all_script"
+	} else {
+		return fmt.Errorf("unknown script type: %s", scriptType)
+	}
+
+	scriptPath, ok := cfg.Get(key)
+	if !ok || scriptPath == "" {
+		return nil
+	}
+
+	// Get the working directory from config
+	workDir := cfg.GetPath()
+	if workDir == "" {
+		workDir = "."
+	}
+
+	runner := script.NewRunner(30 * time.Second)
+	if err := runner.Run(scriptPath, workDir); err != nil {
+		return fmt.Errorf("%s failed: %w", key, err)
+	}
+
+	return nil
+}
+
 func runHTTPTests(path string) error {
 	// Find all test files
 	files, err := monitor.FindTestFiles(path)
@@ -178,6 +214,21 @@ func runHTTPTests(path string) error {
 
 	// Load config for single file execution
 	cfgLoader := config.NewLoader()
+
+	// Load the root config to get global scripts
+	var rootCfg *config.Config
+	if len(files) > 0 {
+		if err := cfgLoader.LoadConfigForPath(files[0]); err == nil {
+			rootCfg, _ = cfgLoader.GetConfigForTest(files[0])
+		}
+	}
+
+	// Run before_all_script if defined
+	if rootCfg != nil {
+		if err := runGlobalScripts(rootCfg, "before"); err != nil {
+			return fmt.Errorf("before_all_script failed: %w", err)
+		}
+	}
 
 	// Execute each test
 	results := make([]monitor.Result, 0, len(files))
@@ -221,6 +272,13 @@ func runHTTPTests(path string) error {
 
 	monitor.PrintSummary(results)
 
+	// Run after_all_script if defined (even if some tests failed)
+	if rootCfg != nil {
+		if err := runGlobalScripts(rootCfg, "after"); err != nil {
+			fmt.Printf("Warning: after_all_script failed: %v\n", err)
+		}
+	}
+
 	// Generate report if flag is set
 	if report != "" {
 		generateHTTPReport(results)
@@ -247,6 +305,16 @@ func runAllTestsInDirectory(path string) error {
 	cfgLoader := config.NewLoader()
 	if err := cfgLoader.LoadConfigsForDirectory(path); err != nil {
 		return fmt.Errorf("failed to load configs: %w", err)
+	}
+
+	// Get the root config to run global scripts
+	rootCfg, _ := cfgLoader.GetConfigForTest(path)
+
+	// Run before_all_script if defined
+	if rootCfg != nil {
+		if err := runGlobalScripts(rootCfg, "before"); err != nil {
+			return fmt.Errorf("before_all_script failed: %w", err)
+		}
 	}
 
 	// Run HTTP tests
@@ -334,6 +402,13 @@ func runAllTestsInDirectory(path string) error {
 		return nil
 	}
 
+	// Run after_all_script if defined (even if some tests failed)
+	if rootCfg != nil {
+		if err := runGlobalScripts(rootCfg, "after"); err != nil {
+			fmt.Printf("Warning: after_all_script failed: %v\n", err)
+		}
+	}
+
 	// Generate report if flag is set
 	if report != "" {
 		generateMixedReport(httpResults, browserResults)
@@ -363,6 +438,21 @@ func runBrowserTests(path string) error {
 
 	// Load config for single file execution
 	cfgLoader := config.NewLoader()
+
+	// Load the root config to get global scripts
+	var rootCfg *config.Config
+	if len(files) > 0 {
+		if err := cfgLoader.LoadConfigForPath(files[0]); err == nil {
+			rootCfg, _ = cfgLoader.GetConfigForTest(files[0])
+		}
+	}
+
+	// Run before_all_script if defined
+	if rootCfg != nil {
+		if err := runGlobalScripts(rootCfg, "before"); err != nil {
+			return fmt.Errorf("before_all_script failed: %w", err)
+		}
+	}
 
 	// Execute each test
 	var results []*browser.BrowserResult
@@ -405,6 +495,13 @@ func runBrowserTests(path string) error {
 	}
 
 	browser.PrintBrowserSummary(results)
+
+	// Run after_all_script if defined (even if some tests failed)
+	if rootCfg != nil {
+		if err := runGlobalScripts(rootCfg, "after"); err != nil {
+			fmt.Printf("Warning: after_all_script failed: %v\n", err)
+		}
+	}
 
 	// Generate report if flag is set
 	if report != "" {

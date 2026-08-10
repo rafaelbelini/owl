@@ -231,3 +231,79 @@ The following errors trigger a retry:
 retries: 0         # No retries by default
 retry_interval: 0  # No delay between retries
 ```
+
+## Script Hooks
+
+You can define scripts that run before and after each test execution. Scripts are useful for:
+- Setting up test-specific fixtures or data
+- Performing cleanup after a test
+- Running auxiliary commands
+
+### HTTP Tests
+
+```yaml
+version: 1
+
+metadata:
+  name: "API Test with Scripts"
+
+before_script: "./scripts/setup.sh"    # Optional: runs before the test
+after_script: "./scripts/cleanup.sh"    # Optional: runs after the test (even on failure)
+script_timeout: 60                     # Optional: script timeout in seconds (default: 30)
+
+request:
+  url: "https://api.example.com/users"
+  method: GET
+
+assertions:
+  - type: "status_code"
+    expected: 200
+```
+
+### Browser Tests
+
+```yaml
+version: 1
+
+metadata:
+  name: "Browser Test with Scripts"
+
+before_script: "./scripts/setup-browser.sh"   # Optional
+after_script: "./scripts/cleanup-browser.sh"  # Optional
+script_timeout: 60                          # Optional
+
+browser:
+  url: "https://example.com"
+  headless: true
+
+steps:
+  - name: "Navigate"
+    action: "goto"
+    url: "https://example.com"
+
+assertions:
+  - type: "url_contains"
+    path: "example.com"
+```
+
+### Script Behavior
+
+| Script | When it runs | Failure behavior |
+|--------|--------------|------------------|
+| `before_script` | Before test execution | Test fails immediately |
+| `after_script` | After test execution | Test result unaffected (warning logged) |
+
+### Global Scripts (owl.config)
+
+You can also define global scripts in `owl.config` that run once before/after all tests in scope:
+
+```bash
+# owl.config
+before_all_script=./scripts/global-setup.sh
+after_all_script=./scripts/global-teardown.sh
+```
+
+| Script | When it runs | Failure behavior |
+|--------|--------------|------------------|
+| `before_all_script` | Before any test | No tests run, suite fails |
+| `after_all_script` | After all tests | Warning logged, results unaffected |

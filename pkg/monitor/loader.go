@@ -46,6 +46,9 @@ func LoadTestWithConfig(path string, cfg *config.Config) (TestConfig, error) {
 		config.TimeoutSeconds = 10
 	}
 
+	// Set the working directory to the test file's directory
+	config.WorkDir = filepath.Dir(path)
+
 	return config, nil
 }
 

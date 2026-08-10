@@ -252,3 +252,8 @@ func (c *Config) Get(key string) (string, bool) {
 	v, ok := c.values[key]
 	return v, ok
 }
+
+// GetPath returns the directory path of the config file
+func (c *Config) GetPath() string {
+	return c.path
+}

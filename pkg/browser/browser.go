@@ -11,19 +11,24 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/rafael/owl/cli/pkg/config"
+	"github.com/rafael/owl/cli/pkg/script"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 // BrowserTestConfig represents the full parsed YAML test structure
 type BrowserTestConfig struct {
-	Version       int                      `yaml:"version"`
-	Metadata      MetadataConfig           `yaml:"metadata"`
-	Browser       BrowserConfig            `yaml:"browser"`
-	Steps         []StepConfig             `yaml:"steps"`
-	Assertions    []BrowserAssertionConfig `yaml:"assertions"`
-	Retries       int                     `yaml:"retries"`
-	RetryInterval int                     `yaml:"retry_interval"`
+	Version        int                       `yaml:"version"`
+	Metadata       MetadataConfig            `yaml:"metadata"`
+	Browser        BrowserConfig             `yaml:"browser"`
+	Steps          []StepConfig              `yaml:"steps"`
+	Assertions     []BrowserAssertionConfig  `yaml:"assertions"`
+	Retries        int                      `yaml:"retries"`
+	RetryInterval  int                      `yaml:"retry_interval"`
+	BeforeScript   string                   `yaml:"before_script"`
+	AfterScript    string                   `yaml:"after_script"`
+	ScriptTimeout  int                      `yaml:"script_timeout"`
+	WorkDir        string                   `yaml:"-"`
 }
 
 // MetadataConfig holds test metadata
@@ -142,9 +147,30 @@ func ExecuteBrowserTestWithRetry(config BrowserTestConfig, retryCount int, retry
 		isHeadless = false
 	}
 
+	// Set default script timeout if not specified
+	scriptTimeout := 30 * time.Second
+	if config.ScriptTimeout > 0 {
+		scriptTimeout = time.Duration(config.ScriptTimeout) * time.Second
+	}
+
+	// Run before_script if defined (before any attempts)
+	if config.BeforeScript != "" {
+		runner := script.NewRunner(scriptTimeout)
+		if err := runner.Run(config.BeforeScript, config.WorkDir); err != nil {
+			return &BrowserResult{
+				Name:       config.Metadata.Name,
+				Pass:       false,
+				Steps:      []StepResult{},
+				Assertions: []AssertionResult{},
+				Error:      fmt.Errorf("before_script failed: %w", err),
+			}
+		}
+	}
+
 	retryInterval := time.Duration(retryIntervalMs) * time.Millisecond
 
 	var lastErr error
+	var testResult *BrowserResult
 	for attempt := 0; attempt <= retryCount; attempt++ {
 		if attempt > 0 {
 			// Wait before retry
@@ -152,16 +178,17 @@ func ExecuteBrowserTestWithRetry(config BrowserTestConfig, retryCount int, retry
 		}
 
 		result := executeBrowserTestAttempt(config, isHeadless)
+		testResult = result
 
 		// Check if we should retry
 		if result.Pass {
-			// Success - return immediately
-			return result
+			// Success - break and run after_script
+			break
 		}
 
 		// If no error but test failed, it means an assertion failed - don't retry
 		if result.Error == nil {
-			return result
+			break
 		}
 
 		// Check if it's a retryable error (timeout, network, etc.)
@@ -171,24 +198,34 @@ func ExecuteBrowserTestWithRetry(config BrowserTestConfig, retryCount int, retry
 		}
 
 		// Non-retryable error (assertion error)
-		return result
-
-		// If no error but test failed, it means an assertion failed - don't retry
-		if result.Error == nil {
-			return result
-		}
+		break
 
 		lastErr = result.Error
 	}
 
 	// All retries exhausted
-	return &BrowserResult{
-		Name:       config.Metadata.Name,
-		Pass:       false,
-		Steps:      []StepResult{},
-		Assertions: []AssertionResult{},
-		Error:      fmt.Errorf("all %d retry attempts failed: %w", retryCount, lastErr),
+	if testResult == nil || (testResult != nil && !testResult.Pass && testResult.Error == nil && lastErr != nil) {
+		testResult = &BrowserResult{
+			Name:       config.Metadata.Name,
+			Pass:       false,
+			Steps:      []StepResult{},
+			Assertions: []AssertionResult{},
+			Error:      fmt.Errorf("all %d retry attempts failed: %w", retryCount, lastErr),
+		}
 	}
+
+	// Run after_script if defined (even if test failed)
+	if config.AfterScript != "" {
+		runner := script.NewRunner(scriptTimeout)
+		if err := runner.Run(config.AfterScript, config.WorkDir); err != nil {
+			// Log the error but don't change the test result
+			if testResult.Error == nil {
+				testResult.Error = fmt.Errorf("after_script failed: %w", err)
+			}
+		}
+	}
+
+	return testResult
 }
 
 // executeBrowserTestAttempt performs a single browser test attempt
@@ -329,6 +366,9 @@ func LoadBrowserTestWithConfig(path string, cfg *config.Config) (*BrowserTestCon
 	if config.Metadata.Name == "" {
 		return nil, fmt.Errorf("metadata.name is required")
 	}
+
+	// Set the working directory to the test file's directory
+	config.WorkDir = filepath.Dir(path)
 
 	return &config, nil
 }
