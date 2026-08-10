@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -45,6 +46,11 @@ func (r *Runner) RunWithOutput(scriptPath, workDir string) (string, error) {
 
 // RunWithDetails executes a shell script and returns stdout, stderr, exit code, and error
 func (r *Runner) RunWithDetails(scriptPath, workDir string) (stdout, stderr string, exitCode int, err error) {
+	// Resolve relative paths against workDir
+	if !filepath.IsAbs(scriptPath) && workDir != "" {
+		scriptPath = filepath.Join(workDir, scriptPath)
+	}
+
 	// Validate script exists
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		return "", "", -1, fmt.Errorf("script not found: %s", scriptPath)
