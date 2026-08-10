@@ -32,7 +32,7 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 	// Get the directory of the test file
 	testDir := filepath.Dir(testPath)
 
-	// Find all .configs/owl.config files from test directory up to root
+	// Find all owl.config files from test directory up to root
 	dirs := l.getConfigDirs(testDir)
 
 	// Load configs from most specific (deepest) to least specific
@@ -40,7 +40,7 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 	mergedConfig := make(map[string]string)
 
 	for _, dir := range dirs {
-		configPath := filepath.Join(dir, ".configs", "owl.config")
+		configPath := filepath.Join(dir, "owl.config")
 
 		if _, err := os.Stat(configPath); err == nil {
 			cfg, err := loadConfigFile(configPath)
@@ -108,7 +108,7 @@ func (l *Loader) getConfigDirs(testDir string) []string {
 	return dirs
 }
 
-// LoadConfigsForDirectory loads all .configs/owl.config files recursively from a directory
+// LoadConfigsForDirectory loads all owl.config files recursively from a directory
 // Returns a map of directory -> Config for scoped lookups
 func (l *Loader) LoadConfigsForDirectory(rootDir string) error {
 	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
@@ -117,7 +117,7 @@ func (l *Loader) LoadConfigsForDirectory(rootDir string) error {
 		}
 
 		if info.IsDir() {
-			configPath := filepath.Join(path, ".configs", "owl.config")
+			configPath := filepath.Join(path, "owl.config")
 			if _, err := os.Stat(configPath); err == nil {
 				cfg, err := loadConfigFile(configPath)
 				if err != nil {
@@ -132,7 +132,7 @@ func (l *Loader) LoadConfigsForDirectory(rootDir string) error {
 }
 
 // GetConfigForTest returns the merged configuration for a specific test path
-// It considers all .configs/owl.config files from the test's directory up to root
+// It considers all owl.config files from the test's directory up to root
 func (l *Loader) GetConfigForTest(testPath string) (*Config, error) {
 	// Check if we already loaded this test path
 	if cfg, ok := l.configs[testPath]; ok {
