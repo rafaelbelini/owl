@@ -74,7 +74,11 @@ func TestResolveStringWithConfig(t *testing.T) {
 func TestLoadConfigFile(t *testing.T) {
 	// Create a temporary config file
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "owl.config")
+	configsDir := filepath.Join(tmpDir, ".configs")
+	if err := os.Mkdir(configsDir, 0755); err != nil {
+		t.Fatalf("Failed to create .configs dir: %v", err)
+	}
+	configPath := filepath.Join(configsDir, "owl.config")
 
 	configContent := `# Test config
 api_url=https://api.example.com
@@ -103,7 +107,11 @@ port=8080
 
 func TestLoadConfigFileInvalid(t *testing.T) {
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "owl.config")
+	configsDir := filepath.Join(tmpDir, ".configs")
+	if err := os.Mkdir(configsDir, 0755); err != nil {
+		t.Fatalf("Failed to create .configs dir: %v", err)
+	}
+	configPath := filepath.Join(configsDir, "owl.config")
 
 	// Invalid line (no =)
 	invalidContent := `api_url`
@@ -121,8 +129,12 @@ func TestLoadConfigForPath(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create parent directory with config
+	parentConfigsDir := filepath.Join(tmpDir, ".configs")
+	if err := os.Mkdir(parentConfigsDir, 0755); err != nil {
+		t.Fatalf("Failed to create parent .configs dir: %v", err)
+	}
 	parentConfig := `api_url=https://parent.example.com`
-	parentPath := filepath.Join(tmpDir, "owl.config")
+	parentPath := filepath.Join(parentConfigsDir, "owl.config")
 	if err := os.WriteFile(parentPath, []byte(parentConfig), 0644); err != nil {
 		t.Fatalf("Failed to create parent config: %v", err)
 	}
@@ -133,8 +145,13 @@ func TestLoadConfigForPath(t *testing.T) {
 		t.Fatalf("Failed to create child dir: %v", err)
 	}
 
+	childConfigsDir := filepath.Join(childDir, ".configs")
+	if err := os.Mkdir(childConfigsDir, 0755); err != nil {
+		t.Fatalf("Failed to create child .configs dir: %v", err)
+	}
+
 	childConfig := `api_token=Bearer child_token`
-	childPath := filepath.Join(childDir, "owl.config")
+	childPath := filepath.Join(childConfigsDir, "owl.config")
 	if err := os.WriteFile(childPath, []byte(childConfig), 0644); err != nil {
 		t.Fatalf("Failed to create child config: %v", err)
 	}

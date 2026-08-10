@@ -13,7 +13,7 @@ Configuration files allow you to:
 
 ## File Format
 
-Configuration files are named `owl.config` and use a simple `key=value` format:
+Configuration files are named `.configs/owl.config` and use a simple `key=value` format:
 
 ```bash
 # Comment
@@ -47,7 +47,7 @@ request:
 
 ### Example: HTTP Test with Config
 
-**owl.config:**
+**.configs/owl.config:**
 ```bash
 api_base_url=https://api.example.com
 api_token=Bearer my_secret_token
@@ -73,7 +73,7 @@ assertions:
 
 ### Example: Browser Test with Config
 
-**owl.config:**
+**.configs/owl.config:**
 ```bash
 base_url=http://localhost:8000
 test_email=test@example.com
@@ -109,38 +109,41 @@ Configuration files follow a scoping hierarchy based on directory structure:
 
 ### Basic Scoping
 
-When running tests from a directory, the `owl.config` file in that directory applies to all tests in it and its subdirectories.
+When running tests from a directory, the `.configs/owl.config` file in that directory applies to all tests in it and its subdirectories.
 
 ```
 tests/
-├── owl.config        # Applied to all tests
+├── .configs/
+│   └── owl.config   # Applied to all tests
 ├── test1.yaml
 └── test2.yaml
 ```
 
 ### Nested Scoping
 
-For nested directories, each directory can have its own `owl.config`. More specific (deeper) configurations override less specific ones.
+For nested directories, each directory can have its own `.configs/owl.config`. More specific (deeper) configurations override less specific ones.
 
 ```
 tests/
-├── owl.config        # Applied to all tests (base config)
+├── .configs/
+│   └── owl.config   # Applied to all tests (base config)
 ├── test1.yaml
 └── subdir/
-    ├── owl.config    # Applied to tests in subdir/ (overrides parent)
-    └── test2.yaml    # Uses subdir/owl.config
+    ├── .configs/
+    │   └── owl.config    # Applied to tests in subdir/ (overrides parent)
+    └── test2.yaml    # Uses subdir/.configs/owl.config
 ```
 
 **Example:**
 
-`tests/owl.config`:
+`tests/.configs/owl.config`:
 ```bash
 api_url=https://api.example.com
 api_token=Bearer parent_token
 environment=production
 ```
 
-`tests/subdir/owl.config`:
+`tests/subdir/.configs/owl.config`:
 ```bash
 api_token=Bearer child_token  # Override parent value
 environment=staging          # Override parent value
@@ -158,7 +161,7 @@ environment=staging          # Override parent value
 
 ## Global Scripts
 
-You can define global scripts that run before and after all tests in the `owl.config` file:
+You can define global scripts that run before and after all tests in the `.configs/owl.config` file:
 
 ### before_all_script
 
@@ -177,7 +180,7 @@ A script that runs once after all tests in the scope have completed (even if som
 **Example:**
 
 ```bash
-# owl.config
+# .configs/owl.config
 before_all_script=./scripts/setup.sh
 after_all_script=./scripts/teardown.sh
 ```
@@ -198,7 +201,7 @@ docker-compose down
 
 ### Script Execution
 
-- Scripts are executed in the directory containing the `owl.config` file
+- Scripts are executed in the directory containing the `.configs/owl.config` file
 - If a `before_all_script` fails, no tests are run and the test suite fails
 - If an `after_all_script` fails, a warning is shown but the test results are not affected
 - Scripts support a 30-second default timeout (configurable via `script_timeout` in test YAML)
@@ -217,14 +220,14 @@ Error: placeholder '${missing_key}' not found in configuration
 
 ### Missing Config Files
 
-If no `owl.config` file exists in the test file's directory or any parent directory, the test runs normally with no placeholder resolution.
+If no `.configs/owl.config` file exists in the test file's directory or any parent directory, the test runs normally with no placeholder resolution.
 
 ## Common Use Cases
 
 ### 1. API Authentication
 
 ```bash
-# owl.config
+# .configs/owl.config
 api_token=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
@@ -238,11 +241,11 @@ request:
 ### 2. Multiple Environments
 
 ```bash
-# production owl.config
+# production .configs/owl.config
 api_url=https://api.production.com
 db_host=prod-db.example.com
 
-# staging owl.config
+# staging .configs/owl.config
 api_url=https://api.staging.com
 db_host=staging-db.example.com
 ```
@@ -250,7 +253,7 @@ db_host=staging-db.example.com
 ### 3. Test Data
 
 ```bash
-# owl.config
+# .configs/owl.config
 test_user_email=user@test.com
 test_user_id=12345
 test_product_id=SKU-001
@@ -258,19 +261,22 @@ test_product_id=SKU-001
 
 ## Best Practices
 
-1. **Use `.gitignore`**: Add `owl.config` to `.gitignore` if it contains sensitive data
+1. **Use `.gitignore`**: Add `.configs/owl.config` to `.gitignore` if it contains sensitive data
 
-2. **Create a template**: Use `owl.config.example` or `owl.config.template` as a template showing required keys without actual secrets
+2. **Create a template**: Use `.configs/owl.config.example` or `.configs/owl.config.template` as a template showing required keys without actual secrets
 
 3. **Organize by environment**: Use directory structure to separate environment configs:
    ```
    tests/
    ├── production/
-   │   └── owl.config
+   │   └── .configs/
+   │       └── owl.config
    ├── staging/
-   │   └── owl.config
+   │   └── .configs/
+   │       └── owl.config
    └── local/
-       └── owl.config
+       └── .configs/
+           └── owl.config
    ```
 
 4. **Document your keys**: Add comments in config files explaining what each key is used for
