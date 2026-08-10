@@ -62,8 +62,20 @@ func (r *Runner) RunWithDetails(scriptPath, workDir string) (stdout, stderr stri
 		shell = "/bin/bash"
 	}
 
-	// Create the command
-	cmd := exec.Command(shell, "-c", scriptPath)
+	// Build the command - we need to ensure the script is found in workDir
+	// Problem: filepath.Join(".", "./script.sh") returns "script.sh" (loses "./")
+	// bash -c "script.sh" searches PATH, not the current directory
+	// Fix: prepend "./" for relative paths so bash finds the script in workDir
+	cmdStr := scriptPath
+	if !filepath.IsAbs(scriptPath) && workDir != "" {
+		// Ensure script has a path prefix so bash finds it in workDir, not PATH
+		if !strings.HasPrefix(filepath.Base(scriptPath), ".") {
+			cmdStr = "./" + scriptPath
+		}
+		// Use cd to workDir so relative paths are resolved correctly
+		cmdStr = "cd " + workDir + " && " + cmdStr
+	}
+	cmd := exec.Command(shell, "-c", cmdStr)
 
 	// Set working directory if provided
 	if workDir != "" {
