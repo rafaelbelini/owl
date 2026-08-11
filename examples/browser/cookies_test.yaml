@@ -1,0 +1,59 @@
+# Browser Test with Cookies
+# Demonstrates how to set cookies before navigation
+# Run with: owl run examples/browser/cookies_test.yaml
+# Start a local server first: npx serve examples/browser -p 8000
+version: 1
+
+metadata:
+  name: "Browser Test with Cookies"
+  description: "Tests browser automation with pre-configured cookies"
+  tags: [cookies, auth]
+
+browser:
+  url: "http://localhost:8000/protected.html"
+  headless: true
+  timeout_seconds: 30
+  wait_until: "networkidle2"
+  viewport:
+    width: 1280
+    height: 720
+  # Pre-configured cookies - set before navigation
+  cookies:
+    - name: "session_id"
+      value: "user_12345_session"
+      domain: "localhost"
+      path: "/"
+      secure: false
+      http_only: false
+    - name: "auth_token"
+      value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiMTIzNDUifQ=="
+      domain: "localhost"
+      path: "/"
+      secure: false
+      http_only: false
+      same_site: "lax"
+
+steps:
+  - name: "Wait for page to load"
+    action: "wait_selector"
+    selector: "body"
+    timeout_seconds: 10
+
+assertions:
+  - name: "Page loaded successfully"
+    type: "selector_visible"
+    selector: "body"
+
+  # Verify cookies are set
+  - name: "Session cookie exists"
+    type: "cookies"
+    name: "session_id"
+
+  - name: "Auth token cookie exists"
+    type: "cookies"
+    name: "auth_token"
+
+  - name: "Session cookie has correct value"
+    type: "cookies"
+    name: "session_id"
+    expected: "user_12345_session"

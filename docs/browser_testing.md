@@ -112,12 +112,51 @@ assertions:
 | `viewport.height` | int | `720` | Altura da janela |
 | `user_agent` | string | - | User agent customizado |
 | `proxy` | string | - | Proxy HTTP |
+| `cookies` | array | - | Lista de cookies para configurar antes da navegação |
 
 ### wait_until options
 
 - `load` - Quando o documento principal carregar
 - `domcontentloaded` - Quando o DOM estiver pronto
 - `networkidle2` - Quando não houver mais de 2 conexões de rede ativas
+
+### Configurando Cookies
+
+Você pode definir cookies que serão configurados antes da navegação inicial. Isso é útil para testes que dependem de sessões pré-existentes ou tokens de autenticação.
+
+```yaml
+browser:
+  url: "http://localhost:8000/dashboard.html"
+  headless: true
+  cookies:
+    - name: "session_id"
+      value: "abc123xyz"
+      domain: "localhost"
+      path: "/"
+      secure: false
+      http_only: false
+    - name: "auth_token"
+      value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      domain: "localhost"
+      path: "/"
+      secure: true
+      http_only: false
+      same_site: "strict"
+```
+
+**Campos disponíveis:**
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `name` | string | Nome do cookie (obrigatório) |
+| `value` | string | Valor do cookie (obrigatório) |
+| `domain` | string | Domínio do cookie |
+| `path` | string | Caminho do cookie (default: `/`) |
+| `secure` | bool | Se o cookie requer HTTPS |
+| `http_only` | bool | Se o cookie é acessível via JavaScript |
+| `same_site` | string | SameSite policy: `strict`, `lax`, `none` |
+
+**Nota:** Cookies são setados antes da navegação, mas alguns sites podem sobrescrever cookies durante o carregamento. Para casos onde o cookie precisa ser reconfigurado após navegação, considere usar `evaluate_js` para definir o cookie via JavaScript.
 
 ## Actions (Steps)
 

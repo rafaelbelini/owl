@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/rafael/owl/cli/pkg/config"
 	"github.com/rafael/owl/cli/pkg/script"
 	"github.com/spf13/cobra"
@@ -40,13 +41,25 @@ type MetadataConfig struct {
 
 // BrowserConfig holds browser launch options
 type BrowserConfig struct {
-	URL            string         `yaml:"url"`
-	Headless       bool           `yaml:"headless"`
-	TimeoutSeconds int            `yaml:"timeout_seconds"`
-	WaitUntil      string         `yaml:"wait_until"`
-	Viewport       ViewportConfig `yaml:"viewport"`
-	Proxy          string         `yaml:"proxy"`
-	UserAgent      string         `yaml:"user_agent"`
+	URL            string           `yaml:"url"`
+	Headless       bool             `yaml:"headless"`
+	TimeoutSeconds int              `yaml:"timeout_seconds"`
+	WaitUntil      string           `yaml:"wait_until"`
+	Viewport       ViewportConfig   `yaml:"viewport"`
+	Proxy          string           `yaml:"proxy"`
+	UserAgent      string           `yaml:"user_agent"`
+	Cookies        []CookieConfig   `yaml:"cookies"`
+}
+
+// CookieConfig holds cookie configuration for browser tests
+type CookieConfig struct {
+	Name     string `yaml:"name"`
+	Value    string `yaml:"value"`
+	Domain   string `yaml:"domain"`
+	Path     string `yaml:"path"`
+	Secure   bool   `yaml:"secure"`
+	HTTPOnly bool   `yaml:"http_only"`
+	SameSite string `yaml:"same_site"` // strict, lax, none
 }
 
 // ViewportConfig holds browser viewport dimensions
@@ -275,6 +288,22 @@ func executeBrowserTestAttempt(config BrowserTestConfig, isHeadless bool) *Brows
 
 	page := browser.MustPage()
 	defer page.Close()
+
+	// Set cookies if configured (before navigation)
+	if len(config.Browser.Cookies) > 0 {
+		cookies := make([]*proto.NetworkCookieParam, len(config.Browser.Cookies))
+		for i, c := range config.Browser.Cookies {
+			cookies[i] = &proto.NetworkCookieParam{
+				Name:     c.Name,
+				Value:    c.Value,
+				Domain:   c.Domain,
+				Path:     c.Path,
+				Secure:   c.Secure,
+				HTTPOnly: c.HTTPOnly,
+			}
+		}
+		page.SetCookies(cookies)
+	}
 
 	// Navigate to initial URL if provided
 	if config.Browser.URL != "" {
