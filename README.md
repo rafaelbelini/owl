@@ -264,10 +264,10 @@ Para exemplos detalhados e troubleshooting, consulte:
 
 ## Configuration Files
 
-Owl supports configuration files (`owl.config`) for reusable values:
+Owl supports configuration files (`.owl`) for reusable values:
 
 ```bash
-# owl.config
+# .owl
 api_base_url=https://api.example.com
 api_token=Bearer my_token
 ```

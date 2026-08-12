@@ -8,14 +8,14 @@ import (
 	"strings"
 )
 
-// Config represents a configuration loaded from owl.config files
+// Config represents a configuration loaded from .owl files
 type Config struct {
 	values map[string]string
 	path   string
 	exec   ExecutionConfig
 }
 
-// ExecutionConfig holds execution configuration from owl.config
+// ExecutionConfig holds execution configuration from .owl
 // (scripts and env file path)
 type ExecutionConfig struct {
 	BeforeScript string
@@ -41,7 +41,7 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 	// Get the directory of the test file
 	testDir := filepath.Dir(testPath)
 
-	// Find all owl.config files from test directory up to root
+	// Find all .owl files from test directory up to root
 	dirs := l.getConfigDirs(testDir)
 
 	// Collect execution configs from each level
@@ -49,7 +49,7 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 	var mergedExec ExecutionConfig
 
 	for _, dir := range dirs {
-		configPath := filepath.Join(dir, "owl.config")
+		configPath := filepath.Join(dir, ".owl")
 
 		if _, err := os.Stat(configPath); err == nil {
 			cfg, err := loadConfigFile(configPath)
@@ -75,7 +75,7 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 	}
 
 	// Load env values with the following priority:
-	// 1. If env is explicitly configured in owl.config, use that file
+	// 1. If env is explicitly configured in .owl, use that file
 	// 2. Otherwise, look for .env in the test directory
 	// 3. If no .env found, no variables are loaded
 	mergedValues := make(map[string]string)
@@ -144,7 +144,7 @@ func (l *Loader) getConfigDirs(testDir string) []string {
 	return dirs
 }
 
-// LoadConfigsForDirectory loads all owl.config files recursively from a directory
+// LoadConfigsForDirectory loads all .owl files recursively from a directory
 // Returns a map of directory -> Config for scoped lookups
 func (l *Loader) LoadConfigsForDirectory(rootDir string) error {
 	return filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
@@ -153,7 +153,7 @@ func (l *Loader) LoadConfigsForDirectory(rootDir string) error {
 		}
 
 		if info.IsDir() {
-			configPath := filepath.Join(path, "owl.config")
+			configPath := filepath.Join(path, ".owl")
 			if _, err := os.Stat(configPath); err == nil {
 				cfg, err := loadConfigFile(configPath)
 				if err != nil {
@@ -168,7 +168,7 @@ func (l *Loader) LoadConfigsForDirectory(rootDir string) error {
 }
 
 // GetConfigForTest returns the merged configuration for a specific test path
-// It considers all owl.config files from the test's directory up to root
+// It considers all .owl files from the test's directory up to root
 func (l *Loader) GetConfigForTest(testPath string) (*Config, error) {
 	// Check if we already loaded this test path
 	if cfg, ok := l.configs[testPath]; ok {
@@ -230,7 +230,7 @@ func ResolveStringWithConfig(input string, values map[string]string) (string, er
 	return result, nil
 }
 
-// loadConfigFile loads a single owl.config file
+// loadConfigFile loads a single .owl file
 func loadConfigFile(path string) (*Config, error) {
 	file, err := os.Open(path)
 	if err != nil {

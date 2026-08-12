@@ -74,9 +74,9 @@ func TestResolveStringWithConfig(t *testing.T) {
 func TestLoadConfigFile(t *testing.T) {
 	// Create a temporary config file
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "owl.config")
+	configPath := filepath.Join(tmpDir, ".owl")
 
-	// owl.config now only contains execution config (before_all_script, after_all_script, env)
+	// .owl now only contains execution config (before_all_script, after_all_script, env)
 	// Variables go in the env file
 	configContent := `# Test config
 before_all_script=./setup.sh
@@ -103,7 +103,7 @@ env=.env
 		t.Errorf("EnvFile = %v, want .env", cfg.exec.EnvFile)
 	}
 
-	// No values should be in owl.config anymore (they go in env file)
+	// No values should be in .owl anymore (they go in env file)
 	if len(cfg.values) != 0 {
 		t.Errorf("values should be empty, got %v", cfg.values)
 	}
@@ -111,7 +111,7 @@ env=.env
 
 func TestLoadConfigFileInvalid(t *testing.T) {
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "owl.config")
+	configPath := filepath.Join(tmpDir, ".owl")
 
 	// Invalid line (no =)
 	invalidContent := `api_url`
@@ -128,15 +128,15 @@ func TestLoadConfigFileInvalid(t *testing.T) {
 func TestLoadConfigForPath(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create child directory with owl.config
+	// Create child directory with .owl
 	childDir := filepath.Join(tmpDir, "child")
 	if err := os.Mkdir(childDir, 0755); err != nil {
 		t.Fatalf("Failed to create child dir: %v", err)
 	}
 
-	// Child has owl.config with env pointing to .env
+	// Child has .owl with env pointing to .env
 	childConfig := `env=.env`
-	childPath := filepath.Join(childDir, "owl.config")
+	childPath := filepath.Join(childDir, ".owl")
 	if err := os.WriteFile(childPath, []byte(childConfig), 0644); err != nil {
 		t.Fatalf("Failed to create child config: %v", err)
 	}
@@ -173,15 +173,15 @@ func TestLoadConfigForPath(t *testing.T) {
 func TestLoadConfigForPathDefaultEnv(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create child directory with owl.config (no env config)
+	// Create child directory with .owl (no env config)
 	childDir := filepath.Join(tmpDir, "child")
 	if err := os.Mkdir(childDir, 0755); err != nil {
 		t.Fatalf("Failed to create child dir: %v", err)
 	}
 
-	// Child has owl.config WITHOUT env config
+	// Child has .owl WITHOUT env config
 	childConfig := `before_all_script=./setup.sh`
-	childPath := filepath.Join(childDir, "owl.config")
+	childPath := filepath.Join(childDir, ".owl")
 	if err := os.WriteFile(childPath, []byte(childConfig), 0644); err != nil {
 		t.Fatalf("Failed to create child config: %v", err)
 	}
@@ -218,15 +218,15 @@ func TestLoadConfigForPathDefaultEnv(t *testing.T) {
 func TestLoadConfigForPathNoEnvFile(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create child directory with owl.config (no env config, no .env file)
+	// Create child directory with .owl (no env config, no .env file)
 	childDir := filepath.Join(tmpDir, "child")
 	if err := os.Mkdir(childDir, 0755); err != nil {
 		t.Fatalf("Failed to create child dir: %v", err)
 	}
 
-	// Child has owl.config WITHOUT env config
+	// Child has .owl WITHOUT env config
 	childConfig := `before_all_script=./setup.sh`
-	childPath := filepath.Join(childDir, "owl.config")
+	childPath := filepath.Join(childDir, ".owl")
 	if err := os.WriteFile(childPath, []byte(childConfig), 0644); err != nil {
 		t.Fatalf("Failed to create child config: %v", err)
 	}

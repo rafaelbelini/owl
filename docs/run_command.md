@@ -293,12 +293,12 @@ assertions:
 | `before_script` | Before test execution | Test fails immediately |
 | `after_script` | After test execution | Test result unaffected (warning logged) |
 
-### Global Scripts (owl.config)
+### Global Scripts (.owl)
 
-You can also define global scripts in `owl.config` that run once before/after all tests in scope:
+You can also define global scripts in `.owl` that run once before/after all tests in scope:
 
 ```bash
-# owl.config
+# .owl
 before_all_script=./scripts/global-setup.sh
 after_all_script=./scripts/global-teardown.sh
 ```

@@ -1,5 +1,5 @@
 # HTTP Test with Config
-# Uses placeholders from owl.config in the same directory
+# Uses placeholders from .owl in the same directory
 version: 1
 
 metadata:
