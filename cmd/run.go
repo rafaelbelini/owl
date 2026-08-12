@@ -170,17 +170,16 @@ func runGlobalScripts(cfg *config.Config, scriptType string) error {
 		return nil
 	}
 
-	key := ""
+	scriptPath := ""
 	if scriptType == "before" {
-		key = "before_all_script"
+		scriptPath = cfg.GetBeforeScript()
 	} else if scriptType == "after" {
-		key = "after_all_script"
+		scriptPath = cfg.GetAfterScript()
 	} else {
 		return fmt.Errorf("unknown script type: %s", scriptType)
 	}
 
-	scriptPath, ok := cfg.Get(key)
-	if !ok || scriptPath == "" {
+	if scriptPath == "" {
 		return nil
 	}
 
@@ -192,7 +191,7 @@ func runGlobalScripts(cfg *config.Config, scriptType string) error {
 
 	runner := script.NewRunner(30 * time.Second)
 	if err := runner.Run(scriptPath, workDir); err != nil {
-		return fmt.Errorf("%s failed: %w", key, err)
+		return fmt.Errorf("%s failed: %w", scriptType+"_all_script", err)
 	}
 
 	return nil

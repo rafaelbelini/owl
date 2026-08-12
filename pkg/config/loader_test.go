@@ -76,10 +76,12 @@ func TestLoadConfigFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "owl.config")
 
+	// owl.config now only contains execution config (before_all_script, after_all_script, env)
+	// Variables go in the env file
 	configContent := `# Test config
-api_url=https://api.example.com
-api_token=Bearer test_token
-port=8080
+before_all_script=./setup.sh
+after_all_script=./teardown.sh
+env=.env
 `
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
 		t.Fatalf("Failed to create temp config file: %v", err)
@@ -90,14 +92,20 @@ port=8080
 		t.Fatalf("loadConfigFile() error = %v", err)
 	}
 
-	if cfg.values["api_url"] != "https://api.example.com" {
-		t.Errorf("api_url = %v, want https://api.example.com", cfg.values["api_url"])
+	// Execution config should be set
+	if cfg.exec.BeforeScript != "./setup.sh" {
+		t.Errorf("BeforeScript = %v, want ./setup.sh", cfg.exec.BeforeScript)
 	}
-	if cfg.values["api_token"] != "Bearer test_token" {
-		t.Errorf("api_token = %v, want Bearer test_token", cfg.values["api_token"])
+	if cfg.exec.AfterScript != "./teardown.sh" {
+		t.Errorf("AfterScript = %v, want ./teardown.sh", cfg.exec.AfterScript)
 	}
-	if cfg.values["port"] != "8080" {
-		t.Errorf("port = %v, want 8080", cfg.values["port"])
+	if cfg.exec.EnvFile != ".env" {
+		t.Errorf("EnvFile = %v, want .env", cfg.exec.EnvFile)
+	}
+
+	// No values should be in owl.config anymore (they go in env file)
+	if len(cfg.values) != 0 {
+		t.Errorf("values should be empty, got %v", cfg.values)
 	}
 }
 
@@ -120,23 +128,37 @@ func TestLoadConfigFileInvalid(t *testing.T) {
 func TestLoadConfigForPath(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create parent directory with config
-	parentConfig := `api_url=https://parent.example.com`
+	// Create parent directory with owl.config pointing to .env
+	parentConfig := `env=.env`
 	parentPath := filepath.Join(tmpDir, "owl.config")
 	if err := os.WriteFile(parentPath, []byte(parentConfig), 0644); err != nil {
 		t.Fatalf("Failed to create parent config: %v", err)
 	}
 
-	// Create child directory with config
+	// Create parent .env file
+	parentEnv := `api_url=https://parent.example.com`
+	parentEnvPath := filepath.Join(tmpDir, ".env")
+	if err := os.WriteFile(parentEnvPath, []byte(parentEnv), 0644); err != nil {
+		t.Fatalf("Failed to create parent .env: %v", err)
+	}
+
+	// Create child directory with owl.config pointing to .env
 	childDir := filepath.Join(tmpDir, "child")
 	if err := os.Mkdir(childDir, 0755); err != nil {
 		t.Fatalf("Failed to create child dir: %v", err)
 	}
 
-	childConfig := `api_token=Bearer child_token`
+	childConfig := `env=.env`
 	childPath := filepath.Join(childDir, "owl.config")
 	if err := os.WriteFile(childPath, []byte(childConfig), 0644); err != nil {
 		t.Fatalf("Failed to create child config: %v", err)
+	}
+
+	// Create child .env file
+	childEnv := `api_token=Bearer child_token`
+	childEnvPath := filepath.Join(childDir, ".env")
+	if err := os.WriteFile(childEnvPath, []byte(childEnv), 0644); err != nil {
+		t.Fatalf("Failed to create child .env: %v", err)
 	}
 
 	// Create test file in child directory
@@ -155,11 +177,56 @@ func TestLoadConfigForPath(t *testing.T) {
 		t.Fatalf("GetConfigForTest() error = %v", err)
 	}
 
-	// Should have both parent and child values
+	// Should have both parent and child values (child overrides parent)
 	if cfg.values["api_url"] != "https://parent.example.com" {
 		t.Errorf("api_url = %v, want https://parent.example.com", cfg.values["api_url"])
 	}
 	if cfg.values["api_token"] != "Bearer child_token" {
 		t.Errorf("api_token = %v, want Bearer child_token", cfg.values["api_token"])
+	}
+}
+
+func TestLoadEnvFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	envPath := filepath.Join(tmpDir, ".env")
+
+	envContent := `# Test env file
+api_url=https://api.example.com
+api_token=Bearer test_token
+port=8080
+`
+	if err := os.WriteFile(envPath, []byte(envContent), 0644); err != nil {
+		t.Fatalf("Failed to create temp env file: %v", err)
+	}
+
+	values, err := loadEnvFile(envPath)
+	if err != nil {
+		t.Fatalf("loadEnvFile() error = %v", err)
+	}
+
+	if values["api_url"] != "https://api.example.com" {
+		t.Errorf("api_url = %v, want https://api.example.com", values["api_url"])
+	}
+	if values["api_token"] != "Bearer test_token" {
+		t.Errorf("api_token = %v, want Bearer test_token", values["api_token"])
+	}
+	if values["port"] != "8080" {
+		t.Errorf("port = %v, want 8080", values["port"])
+	}
+}
+
+func TestLoadEnvFileInvalid(t *testing.T) {
+	tmpDir := t.TempDir()
+	envPath := filepath.Join(tmpDir, ".env")
+
+	// Invalid line (no =)
+	invalidContent := `api_url`
+	if err := os.WriteFile(envPath, []byte(invalidContent), 0644); err != nil {
+		t.Fatalf("Failed to create temp env file: %v", err)
+	}
+
+	_, err := loadEnvFile(envPath)
+	if err == nil {
+		t.Error("loadEnvFile() expected error for invalid line")
 	}
 }
