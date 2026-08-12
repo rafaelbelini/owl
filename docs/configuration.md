@@ -31,6 +31,7 @@ before_all_script=./scripts/setup.sh
 after_all_script=./scripts/teardown.sh
 
 # Env file path (optional)
+# If not specified, .env will be auto-discovered in the test directory if it exists
 env=.env
 ```
 
@@ -44,6 +45,19 @@ api_base_url=https://api.example.com
 api_token=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 test_email=test@example.com
 ```
+
+### Auto-discovery of .env
+
+If no `env` key is configured in `owl.config`, Owl will automatically look for a `.env` file in the test directory:
+
+```
+tests/
+├── owl.config    # No env key - .env will be auto-discovered
+├── .env          # Automatically loaded if exists
+└── test.yaml
+```
+
+If the `.env` file doesn't exist, no variables are loaded and tests run normally without placeholder resolution.
 
 ## Using Placeholders
 
@@ -143,7 +157,10 @@ tests/
 Simply change the `env` value in `owl.config`:
 
 ```bash
-# Development
+# Development (auto-discovers .env)
+# env=.env  <-- can be omitted if using .env
+
+# Explicitly specify .env
 env=.env
 
 # Production
@@ -152,6 +169,8 @@ env=.env.production
 # Staging
 env=.env.staging
 ```
+
+**Note:** If `env` is explicitly configured in `owl.config`, only that file is loaded. If a different `.env` file also exists in the directory, it is ignored.
 
 Each env file can have different values:
 
@@ -183,16 +202,16 @@ tests/
 
 ### Nested Scoping
 
-For nested directories, each directory can have its own `owl.config` and `.env`. More specific (deeper) configurations override less specific ones.
+For nested directories, each directory can have its own `owl.config` and `.env` file. Scripts (`before_all_script`, `after_all_script`) are scoped per directory. Env files are **not** merged from parent to child directories.
 
 ```
 tests/
-├── owl.config   # Base config
-├── .env         # Base variables
+├── owl.config   # Scripts for tests/ and subdir/
+├── .env         # Only for tests/ directory
 ├── test1.yaml
 └── subdir/
-    ├── owl.config   # Overrides parent config
-    ├── .env         # Overrides parent variables
+    ├── owl.config   # Scripts for subdir/ only
+    ├── .env         # Only for subdir/ directory
     └── test2.yaml
 ```
 
@@ -201,32 +220,31 @@ tests/
 `tests/owl.config`:
 ```bash
 before_all_script=./scripts/setup.sh
-env=.env
 ```
 
 `tests/.env`:
 ```bash
 api_url=https://api.example.com
-api_token=Bearer parent_token
+api_token=Bearer token123
 ```
 
 `tests/subdir/owl.config`:
 ```bash
-env=.env.staging
+# No env key - .env will be auto-discovered in subdir/
+before_all_script=./other_setup.sh
 ```
 
-`tests/subdir/.env.staging`:
+`tests/subdir/.env`:
 ```bash
-api_token=Bearer staging_token
+api_url=https://staging.example.com
 ```
 
 **test1.yaml** (in `tests/`):
-- `api_url`: `https://api.example.com` (from parent .env)
-- `api_token`: `Bearer parent_token` (from parent .env)
+- Uses `tests/.env` for variables
 
 **test2.yaml** (in `tests/subdir/`):
-- `api_url`: `https://api.example.com` (inherited from parent)
-- `api_token`: `Bearer staging_token` (overridden in staging .env)
+- Uses `tests/subdir/.env` for variables (auto-discovered)
+- api_url from subdir/.env, not parent
 
 ## Global Scripts
 

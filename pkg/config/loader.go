@@ -44,11 +44,9 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 	// Find all owl.config files from test directory up to root
 	dirs := l.getConfigDirs(testDir)
 
-	// Collect execution configs and env file paths from each level
+	// Collect execution configs from each level
 	// More specific (deeper) execution config overrides parent
 	var mergedExec ExecutionConfig
-	// Map from config directory to resolved env file path
-	envFilesByDir := make(map[string]string) // config dir -> resolved env path
 
 	for _, dir := range dirs {
 		configPath := filepath.Join(dir, "owl.config")
@@ -69,38 +67,45 @@ func (l *Loader) LoadConfigForPath(testPath string) error {
 			if cfg.exec.AfterScript != "" {
 				mergedExec.AfterScript = cfg.exec.AfterScript
 			}
+			// Only override EnvFile if explicitly set in this config
 			if cfg.exec.EnvFile != "" {
 				mergedExec.EnvFile = cfg.exec.EnvFile
-				// Resolve env path relative to the config directory
-				envPath := cfg.exec.EnvFile
-				if !filepath.IsAbs(envPath) {
-					envPath = filepath.Join(dir, envPath)
-				}
-				envFilesByDir[dir] = envPath
 			}
 		}
 	}
 
-	// Load env files and merge values
-	// More specific (deeper) env values override parent
+	// Load env values with the following priority:
+	// 1. If env is explicitly configured in owl.config, use that file
+	// 2. Otherwise, look for .env in the test directory
+	// 3. If no .env found, no variables are loaded
 	mergedValues := make(map[string]string)
 
-	// Iterate from most specific to least specific (dirs is already in this order)
-	for _, dir := range dirs {
-		envPath, ok := envFilesByDir[dir]
-		if !ok {
-			continue
+	envPath := mergedExec.EnvFile
+	if envPath == "" {
+		// No explicit env configured, look for .env in testDir
+		envPath = filepath.Join(testDir, ".env")
+		if _, err := os.Stat(envPath); os.IsNotExist(err) {
+			// No .env file found, continue without env values
+			envPath = ""
 		}
+	} else {
+		// Resolve relative path against testDir
+		if !filepath.IsAbs(envPath) {
+			envPath = filepath.Join(testDir, envPath)
+		}
+	}
 
+	// Load env file if path is set and file exists
+	if envPath != "" {
 		envValues, err := loadEnvFile(envPath)
 		if err != nil {
 			return fmt.Errorf("failed to load env file %s: %w", envPath, err)
 		}
-
-		// Merge values (current overrides existing)
 		for k, v := range envValues {
 			mergedValues[k] = v
 		}
+		// Update mergedExec.EnvFile to reflect actual loaded path (for reference)
+		mergedExec.EnvFile = envPath
 	}
 
 	// Store the final merged config for this test path
