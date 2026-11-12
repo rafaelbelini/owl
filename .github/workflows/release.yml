@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  release:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      # ─── Determine version and release type ─────────────────────────────────
+      - name: Determine version (release branch)
+        if: github.event_name == 'pull_request'
+        id: version-rc
+        run: |
+          HEAD_BRANCH="${{ github.event.pull_request.head.ref }}"
+          if [[ "$HEAD_BRANCH" == release/* ]]; then
+            VERSION="${HEAD_BRANCH#release/}"   # strip "release/" prefix
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_rc=true" >> $GITHUB_OUTPUT
+          else
+            echo "version=" >> $GITHUB_OUTPUT
+            echo "is_rc=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine version (main merge)
+        if: github.event_name == 'push'
+        id: version-main
+        run: |
+          # Try to extract version from the merge commit message (e.g. "Merge pull request #42 from develop → v1.2.3")
+          MERGE_MSG="${{ github.event.head_commit.message }}"
+          if [[ "$MERGE_MSG" =~ ->[[:space:]](v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          else
+            # Fallback: date-based version
+            echo "version=v$(date +%Y.%-m.%-d)" >> $GITHUB_OUTPUT
+          fi
+          echo "is_rc=false" >> $GITHUB_OUTPUT
+
+      - name: Debug version
+        run: |
+          VERSION="${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}"
+          IS_RC="${{ github.event_name == 'pull_request' && steps.version-rc.outputs.is_rc || steps.version-main.outputs.is_rc }}"
+          echo "version=$VERSION  is_rc=$IS_RC"
+        shell: bash
+
+      # ─── Build for all platforms ─────────────────────────────────────────────
+      - name: Build Linux amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -ldflags="-s -w" -o owl-linux-amd64 .
+
+      - name: Build Linux arm64
+        env:
+          GOOS: linux
+          GOARCH: arm64
+        run: go build -ldflags="-s -w" -o owl-linux-arm64 .
+
+      - name: Build macOS amd64
+        env:
+          GOOS: darwin
+          GOARCH: amd64
+        run: go build -ldflags="-s -w" -o owl-darwin-amd64 .
+
+      - name: Build macOS arm64
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+        run: go build -ldflags="-s -w" -o owl-darwin-arm64 .
+
+      - name: Build Windows
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -ldflags="-s -w" -o owl-windows-amd64.exe .
+
+      # ─── Create GitHub Release ───────────────────────────────────────────────
+      - name: Create Release (production)
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.ref != '')
+        env:
+          VERSION: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}
+          IS_RC: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.is_rc || steps.version-main.outputs.is_rc }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          draft: false
+          prerelease: ${{ env.IS_RC == 'true' }}
+          generate_release_notes: true
+          files: |
+            owl-linux-amd64
+            owl-linux-arm64
+            owl-darwin-amd64
+            owl-darwin-arm64
+            owl-windows-amd64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
