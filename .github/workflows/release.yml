@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.21"
           cache: true
 
       # ─── Determine version and release type ─────────────────────────────────
@@ -62,31 +62,36 @@ jobs:
         env:
           GOOS: linux
           GOARCH: amd64
-        run: go build -ldflags="-s -w" -o owl-linux-amd64 .
+          VERSION: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}
+        run: go build -ldflags="-s -w -X github.com/rafael/owl/cli/cmd.Version=$VERSION" -o owl-linux-amd64 .
 
       - name: Build Linux arm64
         env:
           GOOS: linux
           GOARCH: arm64
-        run: go build -ldflags="-s -w" -o owl-linux-arm64 .
+          VERSION: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}
+        run: go build -ldflags="-s -w -X github.com/rafael/owl/cli/cmd.Version=$VERSION" -o owl-linux-arm64 .
 
       - name: Build macOS amd64
         env:
           GOOS: darwin
           GOARCH: amd64
-        run: go build -ldflags="-s -w" -o owl-darwin-amd64 .
+          VERSION: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}
+        run: go build -ldflags="-s -w -X github.com/rafael/owl/cli/cmd.Version=$VERSION" -o owl-darwin-amd64 .
 
       - name: Build macOS arm64
         env:
           GOOS: darwin
           GOARCH: arm64
-        run: go build -ldflags="-s -w" -o owl-darwin-arm64 .
+          VERSION: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}
+        run: go build -ldflags="-s -w -X github.com/rafael/owl/cli/cmd.Version=$VERSION" -o owl-darwin-arm64 .
 
       - name: Build Windows
         env:
           GOOS: windows
           GOARCH: amd64
-        run: go build -ldflags="-s -w" -o owl-windows-amd64.exe .
+          VERSION: ${{ github.event_name == 'pull_request' && steps.version-rc.outputs.version || steps.version-main.outputs.version }}
+        run: go build -ldflags="-s -w -X github.com/rafael/owl/cli/cmd.Version=$VERSION" -o owl-windows-amd64.exe .
 
       # ─── Create GitHub Release ───────────────────────────────────────────────
       - name: Create Release (production)
@@ -107,5 +112,7 @@ jobs:
             owl-darwin-amd64
             owl-darwin-arm64
             owl-windows-amd64.exe
+            install.sh
+            uninstall.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

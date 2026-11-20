@@ -18,6 +18,20 @@ A high-performance, concurrent API monitoring CLI application built with Go and 
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```bash
+# Install latest version
+curl -fsSL https://raw.githubusercontent.com/rafael/owl/main/install.sh | bash
+
+# Or install a specific version
+curl -fsSL https://raw.githubusercontent.com/rafael/owl/v0.1.0/install.sh | bash
+```
+
+This supports Linux (amd64, arm64) and macOS (amd64, arm64).
+
+### Manual Install
+
 ```bash
 # Clone the repository
 git clone https://github.com/rafael/owl.git
